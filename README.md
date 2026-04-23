@@ -9,26 +9,25 @@ SoSe2026 KI Praktikum Agent Arena Projekt
 
 ## Projektbeschreibung
 
-Im Projekt soll ein Spiel umgesetzt werden, in dem zwei
+Im Projekt soll ein Spiel umgesetzt werden, in dem mehrere
 gleich große Teams, bestehend aus mehreren KI-Agenten in
-einer Arena um Ressourcen kämpfen. Das Spielfeld ist eine
+einer Arena Ressourcen verwenden müssen. Das Spielfeld ist eine
 Top-Down Karte mit einem rechteckigem Grid, auf dem sich
-die Agenten befinden. Zu Beginn starten die Agenten auf
-entgegengesetzten Seiten des Spielfelds.
+die Agenten bewegen können.
 
 Die Felder auf dem Spielfeld haben verschiedene Eigenschaften,
-unter anderem Hindernisse, die nicht passiert werden können,
-und Ressourcenfelder, die Agenten auf diesem Feld Punkte
-geben.
+unter anderem Ressourcenfelder, die Agenten erreichen und
+je nach ihrer Rolle verwenden müssen.
 
-Die Agenten haben eine begrenzte Sicht auf das Spielfeld,
-spezifisch, sie wissen immer, was ihr eigenes Team tut, vom
-gegnerischen Team nur innerhalb ihrer Sichtweite.
-Die Agenten innerhalb eines Teams können miteinander kommunizieren.
-Agenten in Angriffsreichweite können angreifen und den gegnerischen
-Agenten Schaden zufügen.
+Die Agenten haben eine begrenzbare Sicht auf das Spielfeld,
+und verschiedene Ziele. Das Ziel ist das in der Simulation
+alle Teams in einem bestimmten Maße kooperativ handeln,
+und sich eine Balance herausbildet, jedoch jede Gruppe
+von Agenten trotzdem ihre eigenen Interessen verfolgt.
 
-Das Spiel ist zuende, wenn eine odere mehrere Win-Conditions
-erfüllt sind, also wenn eine bestimmte Punktzahl erreicht ist
-oder das gegnerische Team besiegt ist, oder die Zeit abläuft.
+## Aufgaben bis Termin 1
+
+- Haron: ICC
+- Daniil: PettingZoo
+- Anton: Spielbeschreibung/Dokumentation
 
