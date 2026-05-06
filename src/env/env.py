@@ -3,21 +3,26 @@ from pettingzoo.utils.agent_selector import agent_selector
 from gymnasium import spaces
 
 from world import GridWorld
+from config import EnvConfig
+from agents.base import BaseAgent
+#from config import EnvConfig
 
 
 class GridForestEnv(AECEnv):
     metadata = {"name": "grid_forest_v1"}
 
-    def __init__(self, config):
+    def __init__(self, config: EnvConfig):
         super().__init__()
 
         self.config = config
         self.world = GridWorld(config.size, config.n_trees)
 
+        # Load data from config file
         self.reward_fn = config.reward_fn
         self.obs_builder = config.observation_builder
         self.termination_conditions = config.termination_conditions
 
+        # Initialise data
         self.possible_agents = ["cutter_0", "collector_0"]
         self.agents = self.possible_agents[:]
 
@@ -35,10 +40,10 @@ class GridForestEnv(AECEnv):
             for agent in self.agents
         }
 
-    def observation_space(self, agent):
+    def observation_space(self, agent: BaseAgent):
         return self._observation_spaces[agent]
 
-    def action_space(self, agent):
+    def action_space(self, agent: BaseAgent):
         return self._action_spaces[agent]
 
     def reset(self, seed=None, options=None):
@@ -57,7 +62,7 @@ class GridForestEnv(AECEnv):
         self._agent_selector = agent_selector(self.agents)
         self.agent_selection = self._agent_selector.next()
 
-    def observe(self, agent):
+    def observe(self, agent: BaseAgent):
         return self.obs_builder.build(self.world, agent)
 
     def step(self, action):

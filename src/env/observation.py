@@ -1,12 +1,14 @@
 import numpy as np
+from env.world import GridWorld
+from agents.base import BaseAgent
 
 class ObservationBuilder:
-    def build(self, world, agent):
+    def build(self, world: GridWorld, agent: BaseAgent):
         raise NotImplementedError
 
 
 class BasicObservation(ObservationBuilder):
-    def build(self, world, agent):
+    def build(self, world: GridWorld, agent: BaseAgent):
         pos = world.positions[agent]
 
         if len(world.trees) > 0:

@@ -1,5 +1,9 @@
+from env.env import GridForestEnv
+from analysis.logger import Logger
+from agents.base import BaseAgent
+
 class EpisodeRunner:
-    def __init__(self, env, agents, logger=None):
+    def __init__(self, env: GridForestEnv, agents:dict, logger:Logger=None):
         self.env = env
         self.agents = agents
         self.logger = logger
@@ -13,7 +17,7 @@ class EpisodeRunner:
             obs = self.env.observe(agent_name)
             info = self.env.infos[agent_name]
 
-            agent = self.agents[agent_name]
+            agent:BaseAgent = self.agents[agent_name]
 
             agent.observe(
                 obs,
