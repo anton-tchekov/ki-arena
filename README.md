@@ -39,3 +39,7 @@ die Bedürfnisse der Agenten an Holz und Früchten erfüllt sind.
 Zudem sollen in einer Weiterentwicklung weitere Agenten hinzugefügt werden,
 welche andere Ziele verfolgen, die auch (teilweise) in Konflikt zu den Zielen
 der anderen Agenten stehen.
+
+### Architektur
+
+![architektur](docs/diagrams/Architekturdiagramm.png)
