@@ -1,9 +1,12 @@
+from logging import config
+
 from pettingzoo.utils.env import AECEnv
 from pettingzoo.utils.agent_selector import agent_selector
 from gymnasium import spaces
 
 from sim.environment.world_grid import GridWorld
 from sim.environment.config import EnvConfig
+from sim.environment.renderer import GridWorldRenderer
 from sim.agents.base import BaseAgent
 #from config import EnvConfig
 
@@ -16,6 +19,7 @@ class GridForestEnv(AECEnv):
 
         self.config = config
         self.world = GridWorld(config.size, config.n_trees)
+        self.renderer = GridWorldRenderer()
 
         # Load data from config file
         self.reward_fn = config.reward_fn
@@ -97,5 +101,5 @@ class GridForestEnv(AECEnv):
         self._accumulate_rewards()
         self.agent_selection = self._agent_selector.next()
 
-    def render(self):
-        return super().render()
+    def render(self, config=None):
+        self.renderer.render(self.world, config)
