@@ -1,4 +1,4 @@
-from sim.environment.env_grid import GridForestEnv
+from environment.env_grid import GridForestEnv
 
 class Evaluator:
     def evaluate(self, env, agents):

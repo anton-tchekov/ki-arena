@@ -1,4 +1,4 @@
-from sim.agents.base import BaseAgent
+from agents.base import BaseAgent
 
 class RLAgent(BaseAgent):
     def __init__(self, name, model):

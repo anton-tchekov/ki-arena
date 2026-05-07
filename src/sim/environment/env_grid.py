@@ -2,9 +2,9 @@ from pettingzoo.utils.env import AECEnv
 from pettingzoo.utils.agent_selector import agent_selector
 from gymnasium import spaces
 
-from sim.environment.world_grid import GridWorld
-from sim.environment.config import EnvConfig
-from sim.agents.base import BaseAgent
+from environment.world_grid import GridWorld
+from environment.config import EnvConfig
+from agents.base import BaseAgent
 #from config import EnvConfig
 
 

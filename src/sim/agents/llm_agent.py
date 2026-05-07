@@ -1,4 +1,4 @@
-from sim.agents.base import BaseAgent
+from agents.base import BaseAgent
 
 class LLMAgent(BaseAgent):
     def __init__(self, name, llm, prompt_builder):

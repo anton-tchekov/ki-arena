@@ -1,7 +1,7 @@
-from sim.arena.runner import EpisodeRunner 
-from sim.arena.phases import Phase
-from sim.analysis.evaluator import Evaluator
-from sim.analysis.logger import Logger 
+from arena.runner import EpisodeRunner
+from arena.phases import Phase
+from analysis.evaluator import Evaluator
+from analysis.logger import Logger
 
 class Arena:
     def __init__(self, env, agents, logger: Logger=None, evaluator: Evaluator=None):

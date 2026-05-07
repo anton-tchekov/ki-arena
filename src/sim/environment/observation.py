@@ -1,6 +1,6 @@
 import numpy as np
-from sim.environment.world_grid import GridWorld
-from sim.agents.base import BaseAgent
+from environment.world_grid import GridWorld
+from agents.base import BaseAgent
 
 class ObservationBuilder:
     def build(self, world: GridWorld, agent: BaseAgent):

@@ -1,4 +1,4 @@
-from sim.agents.base import BaseAgent
+from agents.base import BaseAgent
 
 class Phase:
     def run(self, arena):

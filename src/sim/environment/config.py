@@ -1,6 +1,6 @@
-from sim.environment.reward import BasicReward
-from sim.environment.observation import BasicObservation
-from sim.environment.termination import MaxCycleTermination
+from environment.reward import BasicReward
+from environment.observation import BasicObservation
+from environment.termination import MaxCycleTermination
 
 class EnvConfig:
     def __init__(self):

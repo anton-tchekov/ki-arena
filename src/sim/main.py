@@ -1,10 +1,10 @@
-from sim.arena.simple_arena import Arena
-from sim.arena.phases import ExecutionPhase
-from sim.environment.config import EnvConfig
-from sim.environment.env_grid import GridForestEnv
-from sim.analysis.evaluator import BasicEvaluator
-from sim.analysis.logger import PrintLogger
-from sim.agents.rule_agent import GreedyCollector
+from arena.simple_arena import Arena
+from arena.phases import ExecutionPhase
+from environment.config import EnvConfig
+from environment.env_grid import GridForestEnv
+from analysis.evaluator import BasicEvaluator
+from analysis.logger import PrintLogger
+from agents.rule_agent import GreedyCollector
 
 
 

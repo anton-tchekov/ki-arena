@@ -1,6 +1,6 @@
-from sim.environment.env_grid import GridForestEnv
-from sim.analysis.logger import Logger
-from sim.agents.base import BaseAgent
+from environment.env_grid import GridForestEnv
+from analysis.logger import Logger
+from agents.base import BaseAgent
 
 class EpisodeRunner:
     def __init__(self, env: GridForestEnv, agents:dict, logger:Logger=None):
