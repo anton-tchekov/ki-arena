@@ -7,6 +7,25 @@ SoSe2026 KI Praktikum Agent Arena Projekt
 - Haron Nazari
 - Anton Tchekov
 
+## Bedienungsanleitung
+
+### Projekt starten
+
+Richtiges Verzeichnis betreten:
+```
+cd src/sim
+```
+
+Gegebenenfalls Abhängigkeiten installieren:
+```
+pip install pettingzoo
+```
+
+Ausführen:
+```
+python main.py
+```
+
 ## Projektbeschreibung
 
 Im Projekt soll ein Spiel umgesetzt werden, in dem mehrere
