@@ -25,9 +25,17 @@ alle Teams in einem bestimmten Maße kooperativ handeln,
 und sich eine Balance herausbildet, jedoch jede Gruppe
 von Agenten trotzdem ihre eigenen Interessen verfolgt.
 
-## Aufgaben bis Termin 1
+### Agenten
 
-- Haron: ICC
-- Daniil: PettingZoo
-- Anton: Spielbeschreibung/Dokumentation
+Es sollen einfache Regelbasierte Agenten, RL-Agenten und LLM-Agenten
+miteinander verglichen werden.
 
+Es gibt aktuell zwei Gruppen von Agenten in der Simulation, einmal die
+Holzfäller, die Bäume fällen, und die Früchtesammler, die von den Bäumen
+Früchte sammeln. Das Ziel ist, dass idealerweise die Agenten so handeln,
+dass die Ressourcen der Spielwelt erhalten bleiben, und gleichermaßen
+die Bedürfnisse der Agenten an Holz und Früchten erfüllt sind.
+
+Zudem sollen in einer Weiterentwicklung weitere Agenten hinzugefügt werden,
+welche andere Ziele verfolgen, die auch (teilweise) in Konflikt zu den Zielen
+der anderen Agenten stehen.
