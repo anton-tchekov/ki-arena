@@ -8,7 +8,8 @@ class Action(Enum):
 	UP    = 1,
 	LEFT  = 2,
 	DOWN  = 3,
-	RIGHT = 4
+	RIGHT = 4,
+	INTERACT = 5,
 
 class LLMManager():
 	n = 0   # Number of LLMs
@@ -82,7 +83,7 @@ class LLMManager():
 		return getattr(Action, action_resp.strip())
 		
 print("Started...")
-manager = LLMManager("mistral:7b-instruct", 1, True, False)
+manager = LLMManager("mistral:7b-instruct", 1, False, False)
 
-action = manager.request_action(0, "To ur left, there is a tiger!")
+action = manager.request_action(0, "To ur left, there is a tiger! to ur right there is safety!")
 print(action.name)
