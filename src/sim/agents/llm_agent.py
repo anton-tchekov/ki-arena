@@ -7,6 +7,7 @@ class LLMAgent(BaseAgent):
         self.prompt_builder = prompt_builder
 
     def act(self, obs, info):
+        print("act called")
         prompt = self.prompt_builder(obs, info)
         response = self.llm(prompt)
         return self.parse(response)

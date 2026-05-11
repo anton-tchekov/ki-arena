@@ -1,0 +1,5 @@
+Prompt: LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing. you chose: LEFT. Feedback: You Died!.
+Prompt: LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing. you chose: UP. Feedback: You Survived!.
+Prompt: LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing. you chose: DOWN. Feedback: You Survived!.
+Prompt: LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing. you chose: DOWN. Feedback: You Survived!.
+Prompt: LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing. you chose: DOWN. Feedback: You Survived!.
