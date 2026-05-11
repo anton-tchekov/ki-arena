@@ -21,6 +21,11 @@ Gegebenenfalls Abhängigkeiten installieren:
 pip install pettingzoo
 ```
 
+Wenn im code eine LLM genutzt wird, dann muss Model mit Ollama im Hintergrund laufen:
+```
+ollama run ministral-3:3b
+```
+
 Ausführen:
 ```
 python main.py

@@ -8,6 +8,7 @@ from environment.world_grid import GridWorld
 from environment.config import EnvConfig
 from environment.renderer import GridWorldRenderer
 from agents.base import BaseAgent
+from environment.actions import Action
 #from config import EnvConfig
 
 
@@ -27,7 +28,7 @@ class GridForestEnv(AECEnv):
         self.termination_conditions = config.termination_conditions
 
         # Initialise data
-        self.possible_agents = ["cutter_0", "collector_0"]
+        self.possible_agents = ["cutter_0", "collector_0", "cutter_1"]
         self.agents = self.possible_agents[:]
 
         self._action_spaces = {
@@ -80,9 +81,9 @@ class GridForestEnv(AECEnv):
 
         result = None
 
-        if action in [1, 2, 3, 4]:
+        if action in Action:
             self.world.move(agent, action)
-        elif action == 5:
+        elif action == Action.INTERACT:
             result = self.world.interact(agent)
 
         # reward

@@ -1,11 +1,12 @@
 from agents.base import BaseAgent
+from environment.actions import Action
 
 class RLAgent(BaseAgent):
     def __init__(self, name, model):
         super().__init__(name)
         self.model = model
 
-    def act(self, obs, info):
+    def act(self, obs, info) -> Action:
         action, _ = self.model.predict(obs, deterministic=True)
         return action
 

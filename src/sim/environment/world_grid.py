@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from environment.actions import Action
 
 class GridWorld:
     def __init__(self, size, n_trees):
@@ -26,16 +27,17 @@ class GridWorld:
             )
             self.trees[pos] = 3
 
-    def move(self, agent, action):
+    def move(self, agent, action: Action):
         x, y = self.positions[agent]
 
-        if action == 1:
+        # X und Y sind auf dem Grid vertauscht, nicht verwirrt sein also
+        if action == Action.UP:
             x = max(0, x - 1)
-        elif action == 2:
+        elif action == Action.DOWN:
             x = min(self.size - 1, x + 1)
-        elif action == 3:
+        elif action == Action.LEFT:
             y = max(0, y - 1)
-        elif action == 4:
+        elif action == Action.RIGHT:
             y = min(self.size - 1, y + 1)
 
         self.positions[agent] = np.array([x, y])

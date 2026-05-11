@@ -1,17 +1,13 @@
 from agents.base import BaseAgent
+from llm.llmmanager import LLMManager
+from environment.actions import Action
 
 class LLMAgent(BaseAgent):
-    def __init__(self, name, llm, prompt_builder):
+    def __init__(self, name: str, llm: LLMManager, llm_index: int):
         super().__init__(name)
         self.llm = llm
-        self.prompt_builder = prompt_builder
+        self.index = llm_index
 
-    def act(self, obs, info):
+    def act(self, obs, info) -> Action:
         print("act called")
-        prompt = self.prompt_builder(obs, info)
-        response = self.llm(prompt)
-        return self.parse(response)
-
-    def parse(self, text):
-        # TODO: robust parsing
-        return int(text.strip())
+        return self.llm.request_action(self.index, "Choose a direction to move to")

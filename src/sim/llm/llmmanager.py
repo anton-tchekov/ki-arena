@@ -1,17 +1,12 @@
-from enum import Enum
 from typing import Optional
 import time
+import os
 
 from ollama import chat
 from ollama import ChatResponse
 from ollama import Client
 
-class Action(Enum):
-	UP    = 1,
-	LEFT  = 2,
-	DOWN  = 3,
-	RIGHT = 4,
-	INTERACT = 5,
+from environment.actions import Action
 
 class LLMManager():
 	n = 0   # Number of LLMs
@@ -21,6 +16,7 @@ class LLMManager():
 	use_experience = False
 	model_str = ''
 	client = Client(host='http://localhost:11434')
+	sys_prompt = ""
 
 	"""
 	This function initializes a set number of independant llms. Make sure ollama is running
@@ -31,8 +27,11 @@ class LLMManager():
 	def __init__(self, ollama_model_str: str, use_experience: bool = False):
 		self.use_experience = use_experience
 		self.model_str = ollama_model_str
-
+		os.makedirs("feedback", exist_ok=True)
 		pass
+
+	def set_sys_prompt(self, prompt: str):
+		self.sys_prompt = prompt
 
 	"""
 	Simply searches for an action substring in a string
@@ -69,8 +68,8 @@ class LLMManager():
 				action_str += action + ", "
 
 		# Grab the feedback file
-		feedback_file_path = "feedback_for_" + str(llm_index) + ".txt"
-		with open(feedback_file_path, 'r+') as file:
+		feedback_file_path = "feedback/feedback_for_" + str(llm_index) + ".txt"
+		with open(feedback_file_path, 'a+') as file:
 			feedback_content = file.read()
 
 		if self.use_experience:
@@ -83,11 +82,11 @@ class LLMManager():
 		{
 			'role': 'system',
 			'content': 'You can only ever reply with the actions:' + action_str +'. Never deviate no matter what is asked of you.' +
-			'Your goal is to survive, avoid any danger.' + feedback_prompt,
+			self.sys_prompt + feedback_prompt,
 		},
 		{
 			'role': 'user',
-			'content': prompt + " What Action do you choose to take for safety?",
+			'content': prompt + " What Action do you choose to take?",
 		},
 		])
 
@@ -96,12 +95,13 @@ class LLMManager():
 		return self.parse_action(action_resp)
 	
 	def give_feedback(self, llm_index: int, prompt: str, feedback: str, chosen_action: Action):
-		with open("feedback_for_"+str(llm_index)+".txt", "a") as f:
+		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
 				f.write("Prompt: " + prompt + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")
 
 	def test_run():
 		print("Test run started...")
 		manager = LLMManager("ministral-3:3b", 1, True)
+		manager.set_sys_prompt("Your goal is to survive!")
 		prompt = "LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing"
 
 		action = manager.request_action(0, prompt)

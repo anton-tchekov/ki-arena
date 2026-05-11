@@ -1,3 +1,5 @@
+from enum import Enum
+
 class Action(Enum):
 	UP    = 1,
 	LEFT  = 2,
