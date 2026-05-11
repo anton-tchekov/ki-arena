@@ -82,11 +82,11 @@ class LLMManager():
 		{
 			'role': 'system',
 			'content': 'You can only ever reply with the actions:' + action_str +'. Never deviate no matter what is asked of you.' +
-			self.sys_prompt + feedback_prompt,
+			self.sys_prompt,
 		},
 		{
 			'role': 'user',
-			'content': prompt + " What Action do you choose to take?",
+			'content': prompt + " What Action do you choose to take?" + feedback_prompt,
 		},
 		])
 
@@ -94,9 +94,9 @@ class LLMManager():
 		action_resp = response.message.content.partition('\n')[0]
 		return self.parse_action(action_resp)
 	
-	def give_feedback(self, llm_index: int, prompt: str, feedback: str, chosen_action: Action):
+	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
-				f.write("Prompt: " + prompt + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")
+				f.write("Info: " + info + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")
 
 	def test_run():
 		print("Test run started...")

@@ -14,7 +14,7 @@ def main() -> None:
     config = EnvConfig()
     env = GridForestEnv(config)
 
-    llm: LLMManager = LLMManager("ministral-3:3b", False)
+    llm: LLMManager = LLMManager("llama3:8b", True)
     llm.set_sys_prompt("Your goal is to move around")
 
     agents = {

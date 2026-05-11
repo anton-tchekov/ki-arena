@@ -28,7 +28,7 @@ class GridForestEnv(AECEnv):
         self.termination_conditions = config.termination_conditions
 
         # Initialise data
-        self.possible_agents = ["cutter_0", "collector_0", "cutter_1"]
+        self.possible_agents = ["cutter_0", "collector_0"] # add "cutter_1" for llm
         self.agents = self.possible_agents[:]
 
         self._action_spaces = {
