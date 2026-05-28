@@ -6,7 +6,7 @@ from analysis.evaluator import BasicEvaluator
 from analysis.logger import PrintLogger
 from agents.rule_agent import GreedyCollector
 from agents.llm_agent import LLMAgent
-from llm.llmmanager import LLMManager
+from llm.llmmanager_mistral import LLMManagerMistral
 
 
 
@@ -14,7 +14,7 @@ def main() -> None:
     config = EnvConfig()
     env = GridForestEnv(config)
 
-    llm: LLMManager = LLMManager("llama3:8b", True)
+    llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", True)
     llm.set_sys_prompt("Your goal is to move around")
 
     agents = {
