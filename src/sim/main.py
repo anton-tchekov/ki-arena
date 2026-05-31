@@ -4,23 +4,44 @@ from environment.config import EnvConfig
 from environment.env_grid import GridForestEnv
 from analysis.evaluator import BasicEvaluator
 from analysis.logger import PrintLogger
-from agents.rule_agent import GreedyCollector
+from agents.rule_agent import GreedyCollector, GreedyCutter
 from agents.llm_agent import LLMAgent
 from llm.llmmanager_mistral import LLMManagerMistral
 
 
-
 def main() -> None:
     config = EnvConfig()
+    
+    # For demonstration, use a smaller grid so agents can reach trees faster
+    config.size = 8
+    config.n_trees = 3
+    config.max_cycles = 50
+    
+    # Resource consumption settings
+    config.enable_wood_consumption = True
+    config.enable_fruit_consumption = True
+    config.use_per_agent_consumption = True  # Use per-agent consumption
+    config.wood_consumption_per_agent = 1      # Each agent consumes 1 wood per cycle
+    config.fruit_consumption_per_agent = 1     # Each agent consumes 1 fruit per cycle
+    
+    config.spawn_threshold = 5
+    config.spawn_type = "random"
+    
+    # Enable aging and resource starvation for demonstration
+    config.enable_aging = False
+    config.max_age = 30
+    config.enable_resource_starvation = False
+    
     env = GridForestEnv(config)
 
-    llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", True)
-    llm.set_sys_prompt("Your goal is to move around")
+    # Initialize LLM manager (commented out to avoid API calls during testing)
+    # llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", True)
+    # llm.set_sys_prompt("Your goal is to move around")
 
     agents = {
         "collector_0": GreedyCollector("collector_0"),
-        "cutter_0": GreedyCollector("cutter_0"),
-        "cutter_1": LLMAgent("cutter_1", llm, 0),
+        "cutter_0": GreedyCutter("cutter_0"),
+        #"cutter_1": LLMAgent("cutter_1", llm, 0),
     }
 
     arena = Arena(
@@ -31,6 +52,10 @@ def main() -> None:
     )
 
     results = arena.run_phase(ExecutionPhase())
+    print("\nEpisode complete!")
+    print(f"Final wood: {env.resource_manager.wood}, Final fruits: {env.resource_manager.fruits}")
+    print(f"Final trees: {len(env.world.trees)}")
+    print(f"Final agents: {env.agents}")
     print(results)
 
 if __name__ == "__main__":
