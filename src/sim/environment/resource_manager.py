@@ -18,8 +18,8 @@ class ResourceManager:
             config: EnvConfig object containing consumption and spawn configurations
         """
         self.config = config
-        self.wood = 0
-        self.fruits = 0
+        self.wood = config.starting_wood
+        self.fruits = config.starting_fruit
         self.cycle = 0
     
     def add_wood(self, amount=1):

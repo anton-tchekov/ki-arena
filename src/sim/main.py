@@ -11,27 +11,6 @@ from llm.llmmanager_mistral import LLMManagerMistral
 
 def main() -> None:
     config = EnvConfig()
-    
-    # For demonstration, use a smaller grid so agents can reach trees faster
-    config.size = 8
-    config.n_trees = 3
-    config.max_cycles = 50
-    
-    # Resource consumption settings
-    config.enable_wood_consumption = True
-    config.enable_fruit_consumption = True
-    config.use_per_agent_consumption = True  # Use per-agent consumption
-    config.wood_consumption_per_agent = 1      # Each agent consumes 1 wood per cycle
-    config.fruit_consumption_per_agent = 1     # Each agent consumes 1 fruit per cycle
-    
-    config.spawn_threshold = 5
-    config.spawn_type = "random"
-    
-    # Enable aging and resource starvation for demonstration
-    config.enable_aging = False
-    config.max_age = 30
-    config.enable_resource_starvation = False
-    
     env = GridForestEnv(config)
 
     # Initialize LLM manager (commented out to avoid API calls during testing)
