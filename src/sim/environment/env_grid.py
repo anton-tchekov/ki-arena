@@ -95,7 +95,7 @@ class GridForestEnv(AECEnv):
         """Execute one time step in the environment"""
         agent = self.agent_selection
 
-        # ToDo: the _wa_dead_step is a proper way to handle dead agents, but if we need all_done flag or specifically selecting agents then we could comment in the next lines
+        # ToDo: the _was_dead_step is a proper way to handle dead agents, but if we need all_done flag or specifically selecting agents then we could comment in the next lines
         #all_done = all(
         #    self.terminations.get(a, False) or self.truncations.get(a, False)
         #    for a in self.agents
@@ -106,11 +106,11 @@ class GridForestEnv(AECEnv):
             # Try to get next agent if available
         #    if len(self.agents) > 0 and len(self._agent_selector.agent_order) > 0:
         #       self.agent_selection = self._agent_selector.next()
-        #   return
-        
+        #    return
+                
         if self.terminations[agent] or self.truncations[agent]:
-            #self.agent_selection = self._agent_selector.next()
-            self._was_dead_step(action)  
+            self._was_dead_step(action)
+            return
 
         self.rewards[agent] = 0
 
@@ -157,7 +157,7 @@ class GridForestEnv(AECEnv):
                     self.truncations = {a: True for a in self.agents}
 
         self._accumulate_rewards()
-        
+
         # Advance to next agent for the next iteration
         if len(self.agents) > 0 and len(self._agent_selector.agent_order) > 0:
             self.agent_selection = self._agent_selector.next()
