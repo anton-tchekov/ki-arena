@@ -26,7 +26,9 @@ class EpisodeRunner:
                 info
             )
 
-            if self.env.terminations[agent_name] or self.env.truncations[agent_name]:
+            is_done = (self.env.terminations[agent_name] or self.env.truncations[agent_name])
+
+            if is_done:
                 action = None
             else:
                 action = agent.act(obs, info)

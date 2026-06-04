@@ -74,7 +74,8 @@ class GridForestEnv(AECEnv):
         agent = self.agent_selection
 
         if self.terminations[agent] or self.truncations[agent]:
-            self.agent_selection = self._agent_selector.next()
+            #self.agent_selection = self._agent_selector.next()
+            self._was_dead_step(action)  
             return
 
         self.rewards[agent] = 0
