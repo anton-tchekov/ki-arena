@@ -51,9 +51,10 @@ CUTTER_MIN_WOOD = 1              # Cutter dies if wood < this (when enabled)
 # CORE COMPONENTS
 # (These use the constants defined above for default configuration)
 # =============================================================================
-from environment.reward import BasicReward
-from environment.observation import BasicObservation
-from environment.termination import MaxCycleTermination
+from environment.reward import RewardFunction, BasicReward
+from environment.observation import BasicObservation, ObservationBuilder
+from environment.termination import MaxCycleTermination, TerminationCondition
+
 
 
 class EnvConfig:
@@ -61,7 +62,7 @@ class EnvConfig:
     Configuration class that reads from the module-level constants.
     This allows the existing code to work while users can modify simple constants.
     """
-    def __init__(self):
+    def __init__(self, reward_fn: RewardFunction|None = None, observation_builder: ObservationBuilder|None = None, termination_conditions: list[TerminationCondition]|None = None):
         # BASIC ENVIRONMENT SETTINGS
         self.size = GRID_SIZE
         self.n_trees = INITIAL_TREES
@@ -96,6 +97,6 @@ class EnvConfig:
         self.cutter_min_wood = CUTTER_MIN_WOOD
 
         # CORE COMPONENTS
-        self.reward_fn = BasicReward()
-        self.observation_builder = BasicObservation()
-        self.termination_conditions = [MaxCycleTermination(self.max_cycles)]
+        self.reward_fn = reward_fn if reward_fn is not None else BasicReward()
+        self.observation_builder = observation_builder if observation_builder is not None else BasicObservation()
+        self.termination_conditions = termination_conditions if termination_conditions is not None else [MaxCycleTermination(self.max_cycles)]
