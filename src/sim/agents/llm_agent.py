@@ -9,10 +9,10 @@ class LLMAgent(BaseAgent):
         self.index = llm_index
 
     def act(self, obs, info) -> Action:
-        y, x, dx, dy, _ = obs
-
-        x = int(x)
-        y = int(y)
+        x = obs['x']
+        y = obs['y']
+        dx = obs['dx']
+        dy = obs['dy']
 
         print(f"x: {x}, y: {y}")
         location_prompt = f"""

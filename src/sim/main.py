@@ -15,7 +15,6 @@ def main() -> None:
     #llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
     #llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
 
-    
     config = EnvConfig()
     agents = {
         "collector_0": GreedyCollector("collector_0"),

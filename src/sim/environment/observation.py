@@ -12,10 +12,10 @@ class BasicObservation(ObservationBuilder):
     def build(self, world: GridWorld, agent: BaseAgent):
         """
         Build observation for an agent.
-        
+
         Returns:
             np.array: Observation vector with format:
-                [pos_x, pos_y, dx_to_tree, dy_to_tree, total_fruits_on_trees, 
+                [pos_x, pos_y, dx_to_tree, dy_to_tree, total_fruits_on_trees,
                  wood_count, fruit_count]
         """
         pos = world.positions[agent]
@@ -31,12 +31,20 @@ class BasicObservation(ObservationBuilder):
             dx, dy = 0, 0
 
         total_fruit = sum(world.trees.values())
-        
+
         # Get resource counts from world (which are synced from resource_manager)
         wood_count = getattr(world, 'wood', 0)
         fruit_count = getattr(world, 'fruits', 0)
-        
+
         # Return observation: pos_x, pos_y, dx_to_nearest_tree, dy_to_nearest_tree,
         # total_fruits_on_trees, wood_resources, fruit_resources
-        return np.array([pos[0], pos[1], dx, dy, total_fruit, wood_count, fruit_count], 
-                       dtype=np.float32)
+        return {
+            'x': pos[0],
+            'y': pos[1],
+            'dx': dx,
+            'dy': dy,
+            'trees': world.trees,
+            'total_fruit': total_fruit,
+            'wood_count': wood_count,
+            'fruit_coint': fruit_count
+        }
