@@ -13,7 +13,7 @@ STARTING_FRUIT = 100
 STARTING_WOOD  = 100
 TREE_SPAWN_RATE = 0.1            # Probability (0-1) to spawn a new tree each cycle
 MAX_TREES = 10                   # Maximum number of trees allowed in the world
-FRUIT_SPAWN_RATE = 0.4           # Probability (0-1) per tree to grow fruit each cycle
+FRUIT_SPAWN_RATE = 2.0           # Probability (0-1) per tree to grow fruit each cycle
 FRUIT_GROWTH_AMOUNT = 1          # Number of fruits added when a tree grows
 
 # =============================================================================
@@ -33,7 +33,7 @@ USE_PER_AGENT_CONSUMPTION = True  # Set True to use per-agent consumption, False
 # AGENT SPAWNING SETTINGS
 # Controls when and how new agents spawn
 # =============================================================================
-SPAWN_THRESHOLD = 1000             # Spawn new agent when wood OR fruits >= this
+SPAWN_THRESHOLD = 1000           # Spawn new agent when wood OR fruits >= this
 SPAWN_TYPE = "random"            # "random", "cutter", or "collector"
 
 # =============================================================================

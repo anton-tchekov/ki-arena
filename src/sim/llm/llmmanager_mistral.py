@@ -79,7 +79,13 @@ class LLMManagerMistral():
 		else:
 			feedback_prompt = ""
 
-		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
+		win = True
+		if win:
+			api_key = "m9NbFkpio8pBr1L40smABBe0AiN9R6dL"
+		else:
+			api_key = os.getenv("MISTRAL_API_KEY", "")
+
+		with Mistral(api_key=api_key,) as mistral:
 			res = mistral.chat.complete(model="magistral-small-latest", messages=[
 				{
 					"role": "user",

@@ -4,25 +4,30 @@ from environment.config import EnvConfig
 from environment.env_grid import GridForestEnv
 from analysis.evaluator import BasicEvaluator
 from analysis.logger import PrintLogger
+from agents.llm_agent import LLMAgent
 from agents.rl_agent import RLAgent
 from agents.rule_agent import GreedyCollector, GreedyCutter
 from environment.reward import CollectorRewardFn, CutterRewardFn
+from llm.llmmanager_mistral import LLMManagerMistral
 
 
 def main() -> None:
 
     # Initialize LLM manager (commented out to avoid API calls during testing)
-    #llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
-    #llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
+    llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
+    llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
 
     
     config = EnvConfig()
     agents = {
-        "collector_0": GreedyCollector("collector_0"),
-        "collector_1": GreedyCollector("collector_1"),
-        "collector_2": GreedyCollector("collector_2"),
-        "cutter_0": GreedyCutter("cutter_0"),
-        #"cutter_1": LLMAgent("cutter_1", llm, 0),
+        #"collector_0": GreedyCollector("collector_0"),
+        #"collector_1": GreedyCollector("collector_1"),
+        #"collector_2": GreedyCollector("collector_2"),
+        #"cutter_0": GreedyCutter("cutter_0"),
+
+        "collector_0": LLMAgent("collector_0", llm, 0),
+        "cutter_0": LLMAgent("cutter_0", llm, 1),
+        
         #"collector_0": RLAgent("collector_0"),
         #"cutter_0": RLAgent("cutter_0"),
     }
