@@ -47,4 +47,4 @@ class GreedyCutter(BaseAgent):
         if abs(dx) > abs(dy):
             return Action.LEFT if dx < 0 else Action.RIGHT
         else:
-            return Action.UP if dy < 0 else Action.DOW
+            return Action.UP if dy < 0 else Action.DOWN

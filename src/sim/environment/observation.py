@@ -14,9 +14,7 @@ class BasicObservation(ObservationBuilder):
         Build observation for an agent.
 
         Returns:
-            np.array: Observation vector with format:
-                [pos_x, pos_y, dx_to_tree, dy_to_tree, total_fruits_on_trees,
-                 wood_count, fruit_count]
+            Observation dictionary
         """
         pos = world.positions[agent]
 
