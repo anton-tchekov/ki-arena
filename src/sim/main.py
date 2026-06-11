@@ -10,13 +10,13 @@ from environment.reward import CollectorRewardFn, CutterRewardFn
 
 
 def main() -> None:
-    config = EnvConfig()
-    env = GridForestEnv(config)
 
     # Initialize LLM manager (commented out to avoid API calls during testing)
-    llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
-    llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
+    #llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
+    #llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
 
+    
+    config = EnvConfig()
     agents = {
         "collector_0": GreedyCollector("collector_0"),
         "collector_1": GreedyCollector("collector_1"),
@@ -26,6 +26,7 @@ def main() -> None:
         #"collector_0": RLAgent("collector_0"),
         #"cutter_0": RLAgent("cutter_0"),
     }
+    env = GridForestEnv(config, agents)
 
     arena = Arena(
         env=env,
@@ -34,16 +35,16 @@ def main() -> None:
         evaluator=BasicEvaluator()
     )
 
+    # ToDo: Separate training cycle
+    # load pre-trained agents if available (e.g. from previous training runs)
+    load_rl_agents = False
+    if(load_rl_agents):
+        for agent in agents.values():
+            if hasattr(agent, "load"):
+                agent.load()
+
     learning = False  # set to False to skip training and run execution directly
     if learning:
-        # ToDo: Separate training cycle
-        # load pre-trained agents if available (e.g. from previous training runs)
-        load_rl_agents = False
-        if(load_rl_agents):
-            for agent in agents.values():
-                if hasattr(agent, "load"):
-                    agent.load()
-
         # ToDo: Separate training cycle
         # swap config to use CutterRewardFn for training the RL agent
         config.reward_fn = CutterRewardFn()

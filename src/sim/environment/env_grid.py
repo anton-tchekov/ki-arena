@@ -18,7 +18,7 @@ from environment.actions import Action
 class GridForestEnv(AECEnv):
     metadata = {"name": "grid_forest_v1"}
 
-    def __init__(self, config: EnvConfig):
+    def __init__(self, config: EnvConfig, agents: dict[str, BaseAgent]|None = None):
         super().__init__()
 
         self.config = config
@@ -34,14 +34,14 @@ class GridForestEnv(AECEnv):
         self.termination_conditions = config.termination_conditions
 
         # Initialise data
-        self.possible_agents = ["cutter_1"] # add "cutter_1" for llm
+        self.possible_agents = list(agents.keys()) if agents is not None else []#["collector_0", "cutter_0"]
         self.agents = self.possible_agents[:]
         
         # Track agent types (cutter or collector)
-        self.agent_types = {
-            "cutter_0": "cutter",
-            "collector_0": "collector"
-        }
+        #self.agent_types = {
+        #    "cutter_0": "cutter",
+        #    "collector_0": "collector"
+        #}
 
         self._action_spaces = {
             agent: spaces.Discrete(6) for agent in self.agents
@@ -247,7 +247,7 @@ class GridForestEnv(AECEnv):
         Returns:
             bool: True if agent should die, False otherwise
         """
-        agent_type = self.agent_types.get(agent, "collector")
+        agent_type = agent.split("_")[0]  # Extract type from name like "cutter_0" -> "cutter"
         
         # Check aging death
         if self.config.enable_aging:
