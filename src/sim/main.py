@@ -18,10 +18,10 @@ def main() -> None:
     # llm.set_sys_prompt("Your goal is to move around")
 
     agents = {
-        #"collector_0": GreedyCollector("collector_0"),
+        "collector_0": GreedyCollector("collector_0"),
         "cutter_0": GreedyCutter("cutter_0"),
         #"cutter_1": LLMAgent("cutter_1", llm, 0),
-        "collector_0": RLAgent("collector_0"),
+        #"collector_0": RLAgent("collector_0"),
         #"cutter_0": RLAgent("cutter_0"),
     }
 
@@ -32,21 +32,23 @@ def main() -> None:
         evaluator=BasicEvaluator()
     )
 
-    # ToDo: Separate training cycle
-    # load pre-trained agents if available (e.g. from previous training runs)
-    load_agents = False
-    if(load_agents):
-        for agent in agents.values():
-            if hasattr(agent, "load"):
-                agent.load()
+    learning = True  # set to False to skip training and run execution directly
+    if learning:
+        # ToDo: Separate training cycle
+        # load pre-trained agents if available (e.g. from previous training runs)
+        load_agents = False
+        if(load_agents):
+            for agent in agents.values():
+                if hasattr(agent, "load"):
+                    agent.load()
 
-    # ToDo: Separate training cycle
-    # swap config to use CutterRewardFn for training the RL agent
-    config.reward_fn = CutterRewardFn()
+        # ToDo: Separate training cycle
+        # swap config to use CutterRewardFn for training the RL agent
+        config.reward_fn = CutterRewardFn()
 
-    # ToDo: Separate training cycle
-    arena.run_phase(TrainingPhase(episodes=300))
-    print("Training finished. Running learned execution phase...")
+        # ToDo: Separate training cycle
+        arena.run_phase(TrainingPhase(episodes=300))
+        print("Training finished. Running learned execution phase...")
 
     results = arena.run_phase(ExecutionPhase())
     print("\nEpisode complete!")
