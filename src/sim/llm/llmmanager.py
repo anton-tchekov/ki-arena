@@ -41,14 +41,14 @@ class LLMManager():
 		for action in Action:
 			if action.name in s:
 				return action
-			
+
 		return None
 
 	"""
 	This function sends the new information to an llm and returns an Action Enum value
 
 	Args:
-		llm_index       (int): Index of the LLM to use, returns 
+		llm_index       (int): Index of the LLM to use, returns
 		prompt (str): New information the LLM uses to make a decision
 
 	Returns:
@@ -57,7 +57,7 @@ class LLMManager():
 	def request_action(self, llm_index: int, prompt: str) -> Optional[Action]:
 		if llm_index > self.n:
 			return None
-		
+
 		# Generate the a String of actions possible for the LLM to respond with
 		action_list = [action.name for action in Action]
 		action_str = "["
@@ -79,21 +79,21 @@ class LLMManager():
 
 		# Send the system prompt alongside the user prompt
 		response: ChatResponse = self.client.chat(model=self.model_str, messages=[
-		{
-			'role': 'system',
-			'content': 'You can only ever reply with the actions:' + action_str +'. Never deviate no matter what is asked of you.' +
-			self.sys_prompt,
-		},
+		#{
+		#	'role': 'system',
+		#	'content': 'You can only ever reply with the actions:' + action_str +'. Never deviate no matter what is asked of you.' +
+		#	self.sys_prompt,
+		#},
 		{
 			'role': 'user',
-			'content': prompt + " What Action do you choose to take?" + feedback_prompt,
+			'content': prompt + "What Action do you choose to take?" + feedback_prompt,
 		},
 		])
 
 		# Parse the action from the response
 		action_resp = response.message.content.partition('\n')[0]
 		return self.parse_action(action_resp)
-	
+
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
 				f.write("Info: " + info + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")

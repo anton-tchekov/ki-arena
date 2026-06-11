@@ -14,8 +14,8 @@ def main() -> None:
     env = GridForestEnv(config)
 
     # Initialize LLM manager (commented out to avoid API calls during testing)
-    # llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", True)
-    # llm.set_sys_prompt("Your goal is to move around")
+    llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
+    llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
 
     agents = {
         "collector_0": GreedyCollector("collector_0"),
