@@ -38,18 +38,19 @@ class LLMManagerMistral():
 	Simply searches for an action substring in a string
 	"""
 	def parse_action(self, s: str) -> Optional[Action]:
-		s.upper()
-		for action in Action:
-			if action.name in s:
-				return action
-			
+		words = s.upper().split()
+		enum_map = {member.name: member for member in Action}
+		for word in reversed(words):
+			if word in enum_map:
+				return enum_map[word]
+
 		return None
 
 	"""
 	This function sends the new information to an llm and returns an Action Enum value
 
 	Args:
-		llm_index       (int): Index of the LLM to use, returns 
+		llm_index       (int): Index of the LLM to use, returns
 		prompt (str): New information the LLM uses to make a decision
 
 	Returns:
@@ -58,7 +59,7 @@ class LLMManagerMistral():
 	def request_action(self, llm_index: int, prompt: str) -> Optional[Action]:
 		if llm_index > self.n:
 			return None
-		
+
 		# Generate the a String of actions possible for the LLM to respond with
 		action_list = [action.name for action in Action]
 		action_str = "["
@@ -79,7 +80,7 @@ class LLMManagerMistral():
 			feedback_prompt = ""
 
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
-			res = mistral.chat.complete(model="mistral-medium-3.5", messages=[
+			res = mistral.chat.complete(model="magistral-small-latest", messages=[
 				{
 					"role": "user",
 					"content": prompt + " What Action do you choose to take?" + feedback_prompt,
@@ -92,13 +93,19 @@ class LLMManagerMistral():
 				"type": "text",
 			})
 
+			print("PROMPT:\n" + prompt + " What Action do you choose to take?" + feedback_prompt)
+
 			# Handle response
-			print(res)
+			#print(res)
 
 		# Parse the action from the response
 		action_resp = res.choices[0].message.content
-		return self.parse_action(action_resp)
-	
+		print("RESPONSE: " + action_resp)
+		# self.give_feedback(0, "", action_resp, self.parse_action(action_resp))
+		parse_result = self.parse_action(action_resp)
+		print("PARSE RESULT: " + str(parse_result))
+		return parse_result
+
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
 				f.write("Info: " + info + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")
