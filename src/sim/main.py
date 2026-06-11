@@ -1,26 +1,28 @@
 from arena.simple_arena import Arena
-from arena.phases import ExecutionPhase
+from arena.phases import TrainingPhase, ExecutionPhase
 from environment.config import EnvConfig
 from environment.env_grid import GridForestEnv
 from analysis.evaluator import BasicEvaluator
 from analysis.logger import PrintLogger
-from agents.rule_agent import GreedyCollector
-from agents.llm_agent import LLMAgent
-from llm.llmmanager_mistral import LLMManagerMistral
-
+from agents.rl_agent import RLAgent
+from agents.rule_agent import GreedyCollector, GreedyCutter
+from environment.reward import CollectorRewardFn, CutterRewardFn
 
 
 def main() -> None:
     config = EnvConfig()
     env = GridForestEnv(config)
 
+    # Initialize LLM manager (commented out to avoid API calls during testing)
     llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
     llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
 
     agents = {
-        "collector_0": GreedyCollector("collector_0"),
-        "cutter_0": GreedyCollector("cutter_0"),
-        "cutter_1": LLMAgent("cutter_1", llm, 0),
+        #"collector_0": GreedyCollector("collector_0"),
+        "cutter_0": GreedyCutter("cutter_0"),
+        #"cutter_1": LLMAgent("cutter_1", llm, 0),
+        "collector_0": RLAgent("collector_0"),
+        #"cutter_0": RLAgent("cutter_0"),
     }
 
     arena = Arena(
@@ -30,7 +32,27 @@ def main() -> None:
         evaluator=BasicEvaluator()
     )
 
+    # ToDo: Separate training cycle
+    # load pre-trained agents if available (e.g. from previous training runs)
+    load_agents = False
+    if(load_agents):
+        for agent in agents.values():
+            if hasattr(agent, "load"):
+                agent.load()
+
+    # ToDo: Separate training cycle
+    # swap config to use CutterRewardFn for training the RL agent
+    config.reward_fn = CutterRewardFn()
+
+    # ToDo: Separate training cycle
+    arena.run_phase(TrainingPhase(episodes=300))
+    print("Training finished. Running learned execution phase...")
+
     results = arena.run_phase(ExecutionPhase())
+    print("\nEpisode complete!")
+    print(f"Final wood: {env.resource_manager.wood}, Final fruits: {env.resource_manager.fruits}")
+    print(f"Final trees: {len(env.world.trees)}")
+    print(f"Final agents: {env.agents}")
     print(results)
 
 if __name__ == "__main__":
