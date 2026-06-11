@@ -8,8 +8,11 @@ class GreedyCollector(BaseAgent):
     When adjacent to a tree, it INTERACTs to collect fruits.
     """
     def act(self, obs, info) -> Action:
-        # obs format: [pos_x, pos_y, dx_to_tree, dy_to_tree, total_fruits_on_trees, wood_count, fruit_count]
-        _, _, dy, dx, _, _, _ = obs
+        # obs format: [pos_x, pos_y, dy_to_tree, dx_to_tree, total_fruits_on_trees, wood_count, fruit_count]
+        _, _, dy, dx, fruit_on_tree, _, _ = obs
+
+        if fruit_on_tree < 10:
+            return random.choice(list(Action))
 
         # Check if we're adjacent to a tree (Manhattan distance = 1)
         # Only INTERACT if we're directly next to the tree (not diagonal)
