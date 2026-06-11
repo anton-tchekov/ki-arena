@@ -12,7 +12,9 @@ class EpisodeRunner:
         self._dynamic_agents = {}
 
     def _resolve_agent(self, agent_name: str):
-        """Return the policy object for agent_name, creating a dynamic one if needed."""
+        """
+        Return the policy object for agent_name, creating a dynamic one if needed.
+        """
         if agent_name in self.agents:
             return self.agents[agent_name]
         if agent_name not in self._dynamic_agents:

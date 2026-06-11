@@ -19,6 +19,8 @@ def main() -> None:
 
     agents = {
         "collector_0": GreedyCollector("collector_0"),
+        "collector_1": GreedyCollector("collector_1"),
+        "collector_2": GreedyCollector("collector_2"),
         "cutter_0": GreedyCutter("cutter_0"),
         #"cutter_1": LLMAgent("cutter_1", llm, 0),
         #"collector_0": RLAgent("collector_0"),
@@ -32,12 +34,12 @@ def main() -> None:
         evaluator=BasicEvaluator()
     )
 
-    learning = True  # set to False to skip training and run execution directly
+    learning = False  # set to False to skip training and run execution directly
     if learning:
         # ToDo: Separate training cycle
         # load pre-trained agents if available (e.g. from previous training runs)
-        load_agents = False
-        if(load_agents):
+        load_rl_agents = False
+        if(load_rl_agents):
             for agent in agents.values():
                 if hasattr(agent, "load"):
                     agent.load()
