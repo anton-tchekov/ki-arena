@@ -8,8 +8,9 @@ class GreedyCollector(BaseAgent):
     When adjacent to a tree, it INTERACTs to collect fruits.
     """
     def act(self, obs, info) -> Action:
-        # obs format: [pos_x, pos_y, dy_to_tree, dx_to_tree, total_fruits_on_trees, wood_count, fruit_count]
-        _, _, dy, dx, fruit_on_tree, _, _ = obs
+        dx = obs['dx']
+        dy = obs['dy']
+        fruit_on_tree = obs['total_fruit']
 
         if fruit_on_tree < 10:
             return random.choice(list(Action))
@@ -19,7 +20,7 @@ class GreedyCollector(BaseAgent):
         manhattan_dist = abs(dx) + abs(dy)
         if manhattan_dist == 1:
             return Action.INTERACT
-        
+
         # Otherwise, move toward the tree
         if abs(dx) > abs(dy):
             return Action.LEFT if dx < 0 else Action.RIGHT
@@ -33,15 +34,15 @@ class GreedyCutter(BaseAgent):
     When adjacent to a tree, it INTERACTs to cut down the tree.
     """
     def act(self, obs, info) -> Action:
-        # obs format: [pos_x, pos_y, dx_to_tree, dy_to_tree, total_fruits_on_trees, wood_count, fruit_count]
-        _, _, dy, dx, _, _, _ = obs
+        dx = obs['dx']
+        dy = obs['dy']
 
         # Check if we're adjacent to a tree (Manhattan distance = 1)
         # Only INTERACT if we're directly next to the tree (not diagonal)
         manhattan_dist = abs(dx) + abs(dy)
         if manhattan_dist == 1:
             return Action.INTERACT
-        
+
         # Otherwise, move toward the tree
         if abs(dx) > abs(dy):
             return Action.LEFT if dx < 0 else Action.RIGHT
