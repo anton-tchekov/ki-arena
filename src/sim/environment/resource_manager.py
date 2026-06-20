@@ -21,14 +21,24 @@ class ResourceManager:
         self.wood = config.starting_wood
         self.fruits = config.starting_fruit
         self.cycle = 0
-    
+
+        # Cumulative end-of-run statistics (never consumed, only grow)
+        self.total_wood_cut = 0        # total wood obtained from cutting trees
+        self.total_fruit_collected = 0  # total fruit collected from trees
+        self.trees_cut = 0             # number of trees cut down
+        self.fruit_collect_count = 0   # number of fruit-collect actions
+
     def add_wood(self, amount=1):
-        """Add wood to the global wood counter"""
+        """Add wood to the global wood counter (one tree was cut)."""
         self.wood += amount
-    
+        self.total_wood_cut += amount
+        self.trees_cut += 1
+
     def add_fruits(self, amount=1):
-        """Add fruits to the global fruits counter"""
+        """Add fruits to the global fruits counter (one fruit was collected)."""
         self.fruits += amount
+        self.total_fruit_collected += amount
+        self.fruit_collect_count += 1
     
     def consume_resources(self, num_agents=1):
         """

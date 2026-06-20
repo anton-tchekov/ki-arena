@@ -61,9 +61,10 @@ class GridWorld:
         self.agent_ages = {agent: 0 for agent in agents}
 
     def move(self, agent, action: Action):
+        # Convention: a position is (x, y) = (pos[0], pos[1]).
+        # UP/DOWN move along x, LEFT/RIGHT move along y.
         x, y = self.positions[agent]
 
-        # X und Y sind auf dem Grid vertauscht, nicht verwirrt sein also
         if action == Action.UP:
             x = max(0, x - 1)
         elif action == Action.DOWN:

@@ -1,7 +1,7 @@
 from environment.env_grid import GridForestEnv
 from environment.state_history import StateHistory
 from analysis.logger import Logger
-from agents.base import BaseAgent
+from agents.blackboard import shared_blackboard
 from agents.rule_agent import GreedyCollector, GreedyCutter
 
 
@@ -23,7 +23,7 @@ class EpisodeRunner:
 
     def run_episode(self, render=False):
         self.env.reset()
-        BaseAgent.blackboard.clear()  # start each episode with an empty notice board
+        shared_blackboard.clear()  # start each episode with an empty notice board
         last_rewards: dict[str, float] = {a: 0 for a in self.agents}
 
         max_cycles = getattr(self.env.config, "max_cycles", 100)
@@ -33,7 +33,7 @@ class EpisodeRunner:
         state_history = StateHistory()
         if render:
             self.env.renderer.state_history = state_history
-            self.env.renderer.blackboard = BaseAgent.blackboard
+            self.env.renderer.blackboard = shared_blackboard
 
         while True:
             must_restart = False
@@ -52,7 +52,7 @@ class EpisodeRunner:
                 agent.observe(obs, last_rewards.get(agent_name, 0), is_done, info)
 
                 if is_done:
-                    agent.blackboard.remove(agent_name)  # dead agents stop announcing
+                    shared_blackboard.remove(agent_name)  # dead agents stop announcing
                     self.env.step(None)
                     continue
 

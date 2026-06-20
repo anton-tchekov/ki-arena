@@ -4,6 +4,7 @@ from environment.config import EnvConfig
 from environment.env_grid import GridForestEnv
 from analysis.evaluator import BasicEvaluator
 from analysis.logger import PrintLogger
+from analysis.statistics import SimulationStats
 from agents.rl_agent import RLAgent
 from agents.rule_agent import GreedyCollector, GreedyCutter
 from environment.reward import CollectorRewardFn, CutterRewardFn
@@ -52,12 +53,13 @@ def main() -> None:
         arena.run_phase(TrainingPhase(episodes=300))
         print("Training finished. Running learned execution phase...")
 
-    results = arena.run_phase(ExecutionPhase())
-    print("\nEpisode complete!")
-    print(f"Final wood: {env.resource_manager.wood}, Final fruits: {env.resource_manager.fruits}")
-    print(f"Final trees: {len(env.world.trees)}")
-    print(f"Final agents: {env.agents}")
-    print(results)
+    # Print the end-of-run statistics even if the window is closed mid-run
+    # (closing a window raises SystemExit, which still runs this finally block).
+    try:
+        arena.run_phase(ExecutionPhase())
+    finally:
+        print("\nEpisode complete!")
+        print(SimulationStats.summary(env))
 
 if __name__ == "__main__":
     main()

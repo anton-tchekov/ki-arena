@@ -3,21 +3,21 @@ from agents.msg import Message
 
 class Blackboard:
     """
-    A shared notice board the agents use to talk to each other.
+    A shared notice board the LLM agents use to talk to each other.
 
-    Picture a pinboard in a shared workshop: each agent can pin ONE note
-    saying what it is about to do, and every agent can read all the notes.
-    This lets agents understand each other's intentions and coordinate, e.g.
-    a cutter pins "cut via INTERACT" so collectors know it is busy.
+    Picture a pinboard in a shared workshop: each LLM agent can pin ONE note
+    saying what it is about to do, and every LLM agent can read all the notes.
+    This lets them understand each other's intentions and coordinate, e.g. a
+    cutter pins "cut via INTERACT" so other LLMs know it is busy.
 
-    You almost never use this class directly. Inside an agent you use the two
-    tiny helper methods that every agent already has:
+    Only LLM agents communicate. You almost never use this class directly;
+    inside an LLMAgent you use the two helper methods it provides:
 
         self.announce(Message(Message.Intention.WALK, Action.UP))  # pin my note
         self.listen()                                              # read others
 
-    Every agent in one simulation shares a single Blackboard instance, so a
-    note pinned by one agent is immediately visible to all the others.
+    All LLM agents in one simulation share the single `shared_blackboard`
+    instance below, so a note pinned by one is visible to all the others.
 
     A note is a Message (see msg.py): a structured intention + action.
     """
@@ -44,3 +44,9 @@ class Blackboard:
     def clear(self) -> None:
         """Remove every note. Done automatically at the start of each episode."""
         self._notes.clear()
+
+
+# The single board shared by all communicating (LLM) agents. Lives here, at
+# module level, so the runner and renderer can reference it without importing
+# LLMAgent (which would pull in the LLM backend dependencies).
+shared_blackboard = Blackboard()

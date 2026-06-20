@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, Slider
+from typing import Optional
 
 from agents.msg import Message
 
@@ -41,6 +42,10 @@ class ControlPanel:
         self.needs_restore = False
         self.quit = False
         self.tick_delay = 0.05  # seconds the renderer waits between steps
+        
+        # Store history data for graph click mapping
+        self._graph_cycles = []
+        self._graph_history = None
 
         self.fig = plt.figure("Ki-Arena Control Panel", figsize=(5, 5.5))
         # close_event is a fallback; the WM protocol below is what makes
@@ -79,6 +84,9 @@ class ControlPanel:
 
         # Live graph of resources / population over cycles
         self.ax_graph = self.fig.add_axes([0.12, 0.45, 0.82, 0.37])
+        # Enable click events on the graph
+        self.ax_graph.set_picker(True)
+        self.fig.canvas.mpl_connect('button_press_event', self._on_graph_click)
 
         # Blackboard readout: each agent's current announcement, one per line
         self.ax_board = self.fig.add_axes([0.06, 0.04, 0.90, 0.34])
@@ -109,6 +117,57 @@ class ControlPanel:
         self.view_index += 1  # clamped to latest_index by renderer
         self.view_changed = True
 
+    def _on_graph_click(self, event):
+        """
+        Handle click events on the graph to allow rewinding to specific points.
+        Only works when paused (browsing mode).
+        """
+        if not self.paused:
+            return
+        
+        # Check if click was on the graph axes
+        if event.inaxes != self.ax_graph:
+            return
+        
+        # Only handle left mouse button clicks
+        if event.button != 1:  # 1 = left mouse button
+            return
+        
+        # Need history data to map click to cycle
+        if not self._graph_cycles or len(self._graph_cycles) == 0:
+            return
+            
+        # Get the x-coordinate (cycle) from the click position
+        x_data = event.xdata
+        if x_data is None:
+            return
+        
+        # Find the nearest cycle index
+        nearest_index = self._find_nearest_cycle_index(x_data)
+        if nearest_index is not None:
+            self.view_index = nearest_index
+            self.view_changed = True
+
+    def _find_nearest_cycle_index(self, target_cycle: float) -> Optional[int]:
+        """
+        Find the index of the cycle in _graph_cycles that is closest to target_cycle.
+        Returns None if no cycles are available.
+        """
+        if not self._graph_cycles or len(self._graph_cycles) == 0:
+            return None
+        
+        # Find the closest cycle using linear search (cycles are already sorted)
+        closest_index = 0
+        closest_distance = abs(self._graph_cycles[0] - target_cycle)
+        
+        for i, cycle in enumerate(self._graph_cycles):
+            distance = abs(cycle - target_cycle)
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_index = i
+        
+        return closest_index
+
     # ------------------------------------------------------------------
     def update_graph(self, history, current_index=None) -> None:
         """
@@ -119,6 +178,10 @@ class ControlPanel:
             return
 
         cycles, wood, fruits, population = history.series()
+        
+        # Store cycles and history for click handling
+        self._graph_cycles = cycles
+        self._graph_history = history
 
         ax = self.ax_graph
         ax.clear()

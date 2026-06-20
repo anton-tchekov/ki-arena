@@ -16,17 +16,9 @@ class BasicObservation(ObservationBuilder):
         Returns:
             Observation dictionary
         """
-        pos = world.positions[agent]
-
-        if len(world.trees) > 0:
-            nearest = min(
-                world.trees.keys(),
-                key=lambda t: abs(t[0] - pos[0]) + abs(t[1] - pos[1])
-            )
-            dx = nearest[0] - pos[0]
-            dy = nearest[1] - pos[1]
-        else:
-            dx, dy = 0, 0
+        # Handle both agent object and agent name string
+        agent_key = agent.name if hasattr(agent, 'name') else agent
+        pos = world.positions[agent_key]
 
         total_fruit = sum(world.trees.values())
 
@@ -34,15 +26,12 @@ class BasicObservation(ObservationBuilder):
         wood_count = getattr(world, 'wood', 0)
         fruit_count = getattr(world, 'fruits', 0)
 
-        # Return observation: pos_x, pos_y, dx_to_nearest_tree, dy_to_nearest_tree,
-        # total_fruits_on_trees, wood_resources, fruit_resources
+        # Positions are (x, y) = (pos[0], pos[1]) everywhere — no swapping.
         return {
-            'y': pos[0],
-            'x': pos[1],
-            'dy': dx,
-            'dx': dy,
+            'x': pos[0],
+            'y': pos[1],
             'trees': world.trees,
             'total_fruit': total_fruit,
             'wood_count': wood_count,
-            'fruit_coint': fruit_count
+            'fruit_count': fruit_count
         }

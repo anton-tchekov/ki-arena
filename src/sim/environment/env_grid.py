@@ -36,12 +36,9 @@ class GridForestEnv(AECEnv):
         # Initialise data
         self.possible_agents = list(agents.keys()) if agents is not None else []#["collector_0", "cutter_0"]
         self.agents = self.possible_agents[:]
-        
-        # Track agent types (cutter or collector)
-        #self.agent_types = {
-        #    "cutter_0": "cutter",
-        #    "collector_0": "collector"
-        #}
+
+        # Track agent types (cutter or collector), derived from the name prefix.
+        self.agent_types = {a: a.split("_")[0] for a in self.possible_agents}
 
         self._action_spaces = {
             agent: spaces.Discrete(6) for agent in self.agents
@@ -67,6 +64,7 @@ class GridForestEnv(AECEnv):
         """Reset the environment for a new episode"""
         # Reset to initial agents
         self.agents = self.possible_agents[:]
+        self.agent_types = {a: a.split("_")[0] for a in self.possible_agents}
 
         self.rewards = {a: 0 for a in self.agents}
         self._cumulative_rewards = {a: 0 for a in self.agents}
@@ -75,7 +73,14 @@ class GridForestEnv(AECEnv):
         self.infos = {a: {} for a in self.agents}
 
         self.cycle = 0
-        
+
+        # End-of-run statistics (population lifecycle)
+        self.stats_agents_started = len(self.agents)
+        self.stats_agents_spawned = 0
+        self.stats_agents_died = 0
+        self.stats_peak_population = len(self.agents)
+        self.agent_lifespans = {}  # agent -> cycles lived (recorded at death)
+
         # Reset resource manager
         self.resource_manager = ResourceManager(self.config)
         
@@ -89,7 +94,16 @@ class GridForestEnv(AECEnv):
         self.agent_selection = self._agent_selector.next()
 
     def observe(self, agent: BaseAgent):
-        return self.obs_builder.build(self.world, agent)
+        obs = self.obs_builder.build(self.world, agent)
+        # Expose every currently available agent and its (x, y) position to
+        # act() via the observation, as {agent_name: (x, y)}.
+        if isinstance(obs, dict):
+            obs["agents"] = {
+                name: (int(pos[0]), int(pos[1]))
+                for name in self.agents
+                if (pos := self.world.positions.get(name)) is not None
+            }
+        return obs
 
     def step(self, action):
         """Execute one time step in the environment"""
@@ -223,6 +237,10 @@ class GridForestEnv(AECEnv):
         # Recreate agent selector with updated agents list
         self._agent_selector = agent_selector(self.agents)
 
+        # Statistics
+        self.stats_agents_spawned += 1
+        self.stats_peak_population = max(self.stats_peak_population, len(self.agents))
+
     def _check_all_agents_death(self):
         """
         Check all agents for death conditions and remove dead agents.
@@ -270,10 +288,14 @@ class GridForestEnv(AECEnv):
         Args:
             agent: The agent name to remove
         """
+        # Statistics: record how long this agent lived before removing its age
+        self.agent_lifespans[agent] = self.world.agent_ages.get(agent, 0)
+        self.stats_agents_died += 1
+
         # Remove from current agents list (but keep in possible_agents for reset)
         if agent in self.agents:
             self.agents.remove(agent)
-        
+
         # Remove from world tracking
         if agent in self.world.alive_agents:
             self.world.alive_agents.remove(agent)

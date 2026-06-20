@@ -13,20 +13,21 @@ class RLAgent(BaseAgent):
                      Must match the length of the observation your env returns.
 
     Default matches obs = [pos_x, pos_y, dx_tree, dy_tree, total_fruit, wood, fruit]
+    where dx_tree and dy_tree are extracted from the trees array in the observation.
 
     Note:
         bin=1  → sign only (-1/0/+1), good for direction values like dx, dy
         bin=3  → bucket by 3s, good for position on a small grid
         bin=10 → bucket by 10s, good for counts like total_fruit
 
-        current obs: [pos_x, pos_y, dx_tree, dy_tree, total_fruit, wood, fruit]
+        current obs: [x, y, dx_tree, dy_tree, total_fruit, wood, fruit]
         RLAgent("collector_0")  # uses DEFAULT_BINS, no changes needed
 
         if obs changes to e.g. [pos_x, pos_y, dx_fruit, dy_fruit, n_trees]
         RLAgent("collector_0", discretize_bins=(3, 3, 1, 1, 5))
     """
 
-    DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20)  # update this when obs changes
+    DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20)  # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
 
     def __init__(
         self,
@@ -46,6 +47,32 @@ class RLAgent(BaseAgent):
         self.transitions = []
         self.training = True
 
+    def _obs_dict_to_list(self, obs_dict) -> list:
+        """
+        Convert dictionary observation to list format for discretization.
+        Extracts nearest tree information from trees array.
+        Returns: [x, y, dx_tree, dy_tree, total_fruit, wood, fruit]
+        """
+        x = obs_dict['x']
+        y = obs_dict['y']
+        trees = obs_dict['trees']
+        total_fruit = obs_dict['total_fruit']
+        wood_count = obs_dict['wood_count']
+        fruit_count = obs_dict['fruit_count']
+
+        # Find nearest tree (trees are keyed (x, y), same as agent positions)
+        if trees:
+            tx, ty = min(
+                trees.keys(),
+                key=lambda t: abs(t[0] - x) + abs(t[1] - y)
+            )
+            dx = tx - x
+            dy = ty - y
+        else:
+            dx, dy = 0, 0
+
+        return [x, y, dx, dy, total_fruit, wood_count, fruit_count]
+
     def discretize(self, obs) -> tuple:
         """
         Bucket each obs dimension by its corresponding bin size.
@@ -64,7 +91,9 @@ class RLAgent(BaseAgent):
         return tuple(state)
 
     def act(self, obs, info) -> Action:
-        state = self.discretize(obs)
+        # Convert dictionary observation to list format for discretization
+        obs_list = self._obs_dict_to_list(obs)
+        state = self.discretize(obs_list)
         if self.training and np.random.rand() < self.epsilon:
             return self.action_space[np.random.randint(len(self.action_space))]
         return self.action_space[int(np.argmax(self.q_table[state]))]
@@ -72,8 +101,8 @@ class RLAgent(BaseAgent):
     def after_action(self, obs, action, reward, next_obs, done, info):
         if action is None:
             return
-        s  = self.discretize(obs)
-        s_ = self.discretize(next_obs) if next_obs is not None else None
+        s  = self.discretize(self._obs_dict_to_list(obs))
+        s_ = self.discretize(self._obs_dict_to_list(next_obs)) if next_obs is not None else None
         self.transitions.append((s, action, reward, s_, done))
 
     def train_step(self):
