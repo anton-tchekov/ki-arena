@@ -37,10 +37,10 @@ class BasicObservation(ObservationBuilder):
         # Return observation: pos_x, pos_y, dx_to_nearest_tree, dy_to_nearest_tree,
         # total_fruits_on_trees, wood_resources, fruit_resources
         return {
-            'x': pos[0],
-            'y': pos[1],
-            'dx': dx,
-            'dy': dy,
+            'y': pos[0],
+            'x': pos[1],
+            'dy': dx,
+            'dx': dy,
             'trees': world.trees,
             'total_fruit': total_fruit,
             'wood_count': wood_count,

@@ -1,6 +1,7 @@
 from agents.base import BaseAgent
+from agents.msg import Message
 from environment.actions import Action
-
+import random
 
 class GreedyCollector(BaseAgent):
     """
@@ -8,24 +9,31 @@ class GreedyCollector(BaseAgent):
     When adjacent to a tree, it INTERACTs to collect fruits.
     """
     def act(self, obs, info) -> Action:
+        x  = obs['x']
+        y  = obs['y']
         dx = obs['dx']
         dy = obs['dy']
         fruit_on_tree = obs['total_fruit']
 
         if fruit_on_tree < 10:
-            return random.choice(list(Action))
+            action = random.choice(list(Action))
+            self.announce(Message(Message.Intention.WALK, action))
+            return action
 
         # Check if we're adjacent to a tree (Manhattan distance = 1)
         # Only INTERACT if we're directly next to the tree (not diagonal)
         manhattan_dist = abs(dx) + abs(dy)
         if manhattan_dist == 1:
+            self.announce(Message(Message.Intention.COLLECT, Action.INTERACT))
             return Action.INTERACT
 
         # Otherwise, move toward the tree
         if abs(dx) > abs(dy):
-            return Action.LEFT if dx < 0 else Action.RIGHT
+            action = Action.LEFT if dx < 0 else Action.RIGHT
         else:
-            return Action.UP if dy < 0 else Action.DOWN
+            action = Action.UP if dy < 0 else Action.DOWN
+        self.announce(Message(Message.Intention.WALK, action, ((x+dx),(y+dy))))
+        return action
 
 
 class GreedyCutter(BaseAgent):
@@ -34,6 +42,8 @@ class GreedyCutter(BaseAgent):
     When adjacent to a tree, it INTERACTs to cut down the tree.
     """
     def act(self, obs, info) -> Action:
+        x  = obs['x']
+        y  = obs['y']
         dx = obs['dx']
         dy = obs['dy']
 
@@ -41,10 +51,13 @@ class GreedyCutter(BaseAgent):
         # Only INTERACT if we're directly next to the tree (not diagonal)
         manhattan_dist = abs(dx) + abs(dy)
         if manhattan_dist == 1:
+            self.announce(Message(Message.Intention.CUT, Action.INTERACT))
             return Action.INTERACT
 
         # Otherwise, move toward the tree
         if abs(dx) > abs(dy):
-            return Action.LEFT if dx < 0 else Action.RIGHT
+            action = Action.LEFT if dx < 0 else Action.RIGHT
         else:
-            return Action.UP if dy < 0 else Action.DOWN
+            action = Action.UP if dy < 0 else Action.DOWN
+        self.announce(Message(Message.Intention.WALK, action, ((x+dx),(y+dy))))
+        return action

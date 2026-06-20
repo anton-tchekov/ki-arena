@@ -247,22 +247,20 @@ class GridForestEnv(AECEnv):
         Returns:
             bool: True if agent should die, False otherwise
         """
-        agent_type = agent.split("_")[0]  # Extract type from name like "cutter_0" -> "cutter"
-        
         # Check aging death
         if self.config.enable_aging:
             if self.world.agent_ages.get(agent, 0) >= self.config.max_age:
                 return True
-        
-        # Check resource starvation death
+
+        # Check resource starvation death.
+        # Collective society: every agent needs BOTH fruit and wood, so any
+        # agent starves if either resource runs out, regardless of its type.
         if self.config.enable_resource_starvation:
-            if agent_type == "collector":
-                if self.resource_manager.fruits < self.config.collector_min_fruits:
-                    return True
-            elif agent_type == "cutter":
-                if self.resource_manager.wood < self.config.cutter_min_wood:
-                    return True
-        
+            if self.resource_manager.fruits < self.config.collector_min_fruits:
+                return True
+            if self.resource_manager.wood < self.config.cutter_min_wood:
+                return True
+
         return False
 
     def _remove_agent(self, agent):
