@@ -30,6 +30,7 @@ class BasicObservation(ObservationBuilder):
         return {
             'x': pos[0],
             'y': pos[1],
+            'size': world.size,
             'trees': world.trees,
             'total_fruit': total_fruit,
             'wood_count': wood_count,

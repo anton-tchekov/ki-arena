@@ -25,9 +25,8 @@ class LLMManagerMistral():
 	Args:
 		use_experience  (bool): Uses the written down experience
 	"""
-	def __init__(self, ollama_model_str: str, use_experience: bool = False):
+	def __init__(self, use_experience: bool = False):
 		self.use_experience = use_experience
-		self.model_str = ollama_model_str
 		os.makedirs("feedback", exist_ok=True)
 		pass
 
@@ -93,7 +92,7 @@ class LLMManagerMistral():
 				"type": "text",
 			})
 
-			print("PROMPT:\n" + prompt + " What Action do you choose to take?" + feedback_prompt)
+			#print("PROMPT:\n" + prompt + " What Action do you choose to take?" + feedback_prompt)
 
 			# Handle response
 			#print(res)
@@ -103,7 +102,7 @@ class LLMManagerMistral():
 		print("RESPONSE: " + action_resp)
 		# self.give_feedback(0, "", action_resp, self.parse_action(action_resp))
 		parse_result = self.parse_action(action_resp)
-		print("PARSE RESULT: " + str(parse_result))
+		#print("PARSE RESULT: " + str(parse_result))
 		return parse_result
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
