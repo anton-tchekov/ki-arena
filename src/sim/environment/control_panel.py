@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, Slider
 from typing import Optional
 
-from agents.msg import Message
-
 
 def _bind_window_close(fig, callback) -> None:
     """
@@ -204,12 +202,12 @@ class ControlPanel:
             pass
 
     # ------------------------------------------------------------------
-    def update_blackboard(self, notes: dict[str, Message]) -> None:
+    def update_blackboard(self, notes: dict[str, str]) -> None:
         """
-        Show the current blackboard: one "agent: message" line per agent.
-        `notes` is the {agent_name: Message} dict from the shared Blackboard;
-        each Message renders itself via str(). Drawn with draw_idle only — the
-        flush from update_graph renders it.
+        Show the current blackboard: one "agent: plan" line per agent.
+        `notes` is the {agent_name: plan_text} dict from the shared Blackboard,
+        where each plan is the natural-language sentence the LLM wrote. Drawn
+        with draw_idle only — the flush from update_graph renders it.
         """
         ax = self.ax_board
         ax.clear()
@@ -220,8 +218,10 @@ class ControlPanel:
 
         if notes:
             y = 0.82
-            for name, message in notes.items():
-                ax.text(0.0, y, f"{name}: {message}", transform=ax.transAxes,
+            for name, plan in notes.items():
+                # Truncate long plans so they fit the panel.
+                text = plan if len(plan) <= 48 else plan[:45] + "..."
+                ax.text(0.0, y, f"{name}: {text}", transform=ax.transAxes,
                         va="top", ha="left", fontsize=8, family="monospace")
                 y -= 0.13
         else:

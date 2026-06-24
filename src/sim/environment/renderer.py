@@ -300,17 +300,19 @@ class GridWorldRenderer:
         self._draw_title(world)
 
     def _build_grid(self, world):
+        # imshow draws grid[row][col]: row is the vertical axis (y), col is the
+        # horizontal axis (x). So index as grid[y][x].
         grid = np.zeros((world.size, world.size))
 
         for (x, y), fruit in world.trees.items():
-            grid[x][y] = 1 if fruit <= 2 else 2
+            grid[y][x] = 1 if fruit <= 2 else 2
 
         for agent, pos in world.positions.items():
             x, y = pos
             if "collector" in agent:
-                grid[x][y] = 3
+                grid[y][x] = 3
             elif "cutter" in agent:
-                grid[x][y] = 4
+                grid[y][x] = 4
 
         return grid
 
@@ -331,7 +333,8 @@ class GridWorldRenderer:
             return
 
         for (x, y), fruit in world.trees.items():
-            self.ax.text(y, x, _fmt(fruit), ha="center", va="center",
+            # text(horizontal, vertical) = text(x, y).
+            self.ax.text(x, y, _fmt(fruit), ha="center", va="center",
                          color="white", fontsize=10)
 
         if not hasattr(world, "agent_ages"):
@@ -348,13 +351,13 @@ class GridWorldRenderer:
             age = world.agent_ages.get(agent, 0)
 
             if position_agents[key][0] == agent:
-                self.ax.text(y, x - 0.3, str(age), ha="center", va="center",
+                self.ax.text(x, y - 0.3, str(age), ha="center", va="center",
                              color="white", fontsize=8,
                              bbox=dict(facecolor="black", alpha=0.7,
                                        edgecolor="none", pad=1))
 
             if len(position_agents[key]) > 1 and position_agents[key][0] == agent:
-                self.ax.text(y, x + 0.3, str(len(position_agents[key])),
+                self.ax.text(x, y + 0.3, str(len(position_agents[key])),
                              ha="center", va="center", color="white", fontsize=8,
                              bbox=dict(facecolor="black", alpha=0.7,
                                        edgecolor="none", pad=1))

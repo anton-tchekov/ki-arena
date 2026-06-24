@@ -22,7 +22,7 @@ def main() -> None:
     config = EnvConfig()
     agents = {
         "collector_0": LLMAgent("collector_0", llm, 0),
-        #"collector_1": GreedyCollector("collector_1"),
+        "collector_1": LLMAgent("collector_1", llm, 0),
         #"collector_2": GreedyCollector("collector_2"),
         #"cutter_0": GreedyCutter("cutter_0"),
         #"cutter_1": LLMAgent("cutter_1", llm, 0),

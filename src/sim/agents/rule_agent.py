@@ -59,11 +59,11 @@ def _step_toward(x, y, tx, ty) -> Action:
     if abs(dx) + abs(dy) == 1:
         return Action.INTERACT
 
-    # x via UP/DOWN, y via LEFT/RIGHT
+    # x is horizontal (LEFT/RIGHT), y is vertical (UP/DOWN).
     if abs(dx) > abs(dy):
-        return Action.UP if dx < 0 else Action.DOWN
+        return Action.LEFT if dx < 0 else Action.RIGHT
     else:
-        return Action.LEFT if dy < 0 else Action.RIGHT
+        return Action.UP if dy < 0 else Action.DOWN
 
 
 class GreedyCollector(BaseAgent):

@@ -27,6 +27,7 @@ class BasicObservation(ObservationBuilder):
         fruit_count = getattr(world, 'fruits', 0)
 
         # Positions are (x, y) = (pos[0], pos[1]) everywhere — no swapping.
+        # x is the HORIZONTAL axis, y is the VERTICAL axis.
         return {
             'x': pos[0],
             'y': pos[1],

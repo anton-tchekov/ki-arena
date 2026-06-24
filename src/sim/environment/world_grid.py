@@ -62,17 +62,17 @@ class GridWorld:
 
     def move(self, agent, action: Action):
         # Convention: a position is (x, y) = (pos[0], pos[1]).
-        # UP/DOWN move along x, LEFT/RIGHT move along y.
+        # x is HORIZONTAL (LEFT/RIGHT), y is VERTICAL (UP/DOWN).
         x, y = self.positions[agent]
 
         if action == Action.UP:
-            x = max(0, x - 1)
-        elif action == Action.DOWN:
-            x = min(self.size - 1, x + 1)
-        elif action == Action.LEFT:
             y = max(0, y - 1)
-        elif action == Action.RIGHT:
+        elif action == Action.DOWN:
             y = min(self.size - 1, y + 1)
+        elif action == Action.LEFT:
+            x = max(0, x - 1)
+        elif action == Action.RIGHT:
+            x = min(self.size - 1, x + 1)
 
         self.positions[agent] = np.array([x, y])
 

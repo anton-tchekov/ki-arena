@@ -1,6 +1,3 @@
-from agents.msg import Message
-
-
 class Blackboard:
     """
     A shared notice board the LLM agents use to talk to each other.
@@ -8,31 +5,31 @@ class Blackboard:
     Picture a pinboard in a shared workshop: each LLM agent can pin ONE note
     saying what it is about to do, and every LLM agent can read all the notes.
     This lets them understand each other's intentions and coordinate, e.g. a
-    cutter pins "cut via INTERACT" so other LLMs know it is busy.
+    cutter pins "Heading to the tree at (5,10) to chop it" so others stay clear.
 
     Only LLM agents communicate. You almost never use this class directly;
     inside an LLMAgent you use the two helper methods it provides:
 
-        self.announce(Message(Message.Intention.WALK, Action.UP))  # pin my note
+        self.announce("Going to collect from the tree at (5,10)")  # pin my note
         self.listen()                                              # read others
 
     All LLM agents in one simulation share the single `shared_blackboard`
     instance below, so a note pinned by one is visible to all the others.
 
-    A note is a Message (see msg.py): a structured intention + action.
+    A note is just a short natural-language string the LLM wrote itself.
     """
 
     def __init__(self) -> None:
-        # agent name -> its latest note
-        self._notes: dict[str, Message] = {}
+        # agent name -> its latest plan (natural-language string)
+        self._notes: dict[str, str] = {}
 
-    def post(self, agent_name: str, message: Message) -> None:
+    def post(self, agent_name: str, plan: str) -> None:
         """Pin (or replace) the note for one agent."""
-        self._notes[agent_name] = message
+        self._notes[agent_name] = plan
 
-    def read(self, exclude: str | None = None) -> dict[str, Message]:
+    def read(self, exclude: str | None = None) -> dict[str, str]:
         """
-        Return all current notes as a {agent_name: Message} dictionary.
+        Return all current notes as a {agent_name: plan_text} dictionary.
         Pass exclude=<name> to leave out one agent (normally yourself).
         """
         return {name: note for name, note in self._notes.items() if name != exclude}

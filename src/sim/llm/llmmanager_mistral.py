@@ -79,7 +79,7 @@ class LLMManagerMistral():
 			feedback_prompt = ""
 
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
-			res = mistral.chat.complete(model="magistral-small-latest", messages=[
+			res = mistral.chat.complete(model="ministral-3b-2512", messages=[
 				{
 					"role": "user",
 					"content": prompt + " What Action do you choose to take?" + feedback_prompt,
@@ -104,6 +104,31 @@ class LLMManagerMistral():
 		parse_result = self.parse_action(action_resp)
 		#print("PARSE RESULT: " + str(parse_result))
 		return parse_result
+
+	def request_response(self, llm_index: int, prompt: str) -> str:
+		"""
+		Send `prompt` and return the model's RAW text reply (no parsing, no
+		action-only system prompt), so the caller can read free-form natural
+		language — e.g. a plan sentence — alongside the action.
+		"""
+		if llm_index > self.n:
+			return ""
+
+		feedback_prompt = ""
+		if self.use_experience:
+			with open("feedback/feedback_for_" + str(llm_index) + ".txt", 'a+') as file:
+				file.seek(0)
+				feedback_prompt = " Your past feedback includes: " + file.read()
+
+		messages = [{"role": "user", "content": prompt + feedback_prompt}]
+		if self.sys_prompt:
+			messages.append({"role": "system", "content": self.sys_prompt})
+
+		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", "")) as mistral:
+			res = mistral.chat.complete(model="magistral-small-latest", messages=messages,
+				stream=False, response_format={"type": "text"})
+
+		return res.choices[0].message.content or ""
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
