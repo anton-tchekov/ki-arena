@@ -1,0 +1,13 @@
+- Dokumnetation spannender machen, derzeit bringt die doku keine lust auf das projekt
+- Wenn man strategien vergleicht, am besten nicht allwissenheit geben (Erstmal rauslassen)
+- lotka voltera modell
+- Blackboard für kommunikation
+- netlogo angucken
+- centrilized learning, decentriliazed execution
+
+Vektor an LLM geben für environement gefühl?
+-> Als text, wir verweden 2 dim matrix und form beschreiben
+
+Wie spannender machen die doku?
+-> 
+

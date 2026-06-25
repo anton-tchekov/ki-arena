@@ -61,17 +61,18 @@ class GridWorld:
         self.agent_ages = {agent: 0 for agent in agents}
 
     def move(self, agent, action: Action):
+        # Convention: a position is (x, y) = (pos[0], pos[1]).
+        # x is HORIZONTAL (LEFT/RIGHT), y is VERTICAL (UP/DOWN).
         x, y = self.positions[agent]
 
-        # X und Y sind auf dem Grid vertauscht, nicht verwirrt sein also
         if action == Action.UP:
-            x = max(0, x - 1)
-        elif action == Action.DOWN:
-            x = min(self.size - 1, x + 1)
-        elif action == Action.LEFT:
             y = max(0, y - 1)
-        elif action == Action.RIGHT:
+        elif action == Action.DOWN:
             y = min(self.size - 1, y + 1)
+        elif action == Action.LEFT:
+            x = max(0, x - 1)
+        elif action == Action.RIGHT:
+            x = min(self.size - 1, x + 1)
 
         self.positions[agent] = np.array([x, y])
 

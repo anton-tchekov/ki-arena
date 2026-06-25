@@ -94,19 +94,28 @@ class LLMManager():
 		action_resp = response.message.content.partition('\n')[0]
 		return self.parse_action(action_resp)
 
+	def request_response(self, llm_index: int, prompt: str) -> str:
+		"""
+		Send `prompt` and return the model's RAW text reply (no parsing), so the
+		caller can read free-form natural language — e.g. a plan sentence —
+		alongside the action.
+		"""
+		if llm_index > self.n:
+			return ""
+
+		feedback_prompt = ""
+		if self.use_experience:
+			with open("feedback/feedback_for_" + str(llm_index) + ".txt", 'a+') as file:
+				file.seek(0)
+				feedback_prompt = " Your past feedback includes: " + file.read()
+
+		messages = [{'role': 'user', 'content': prompt + feedback_prompt}]
+		if self.sys_prompt:
+			messages.insert(0, {'role': 'system', 'content': self.sys_prompt})
+
+		response: ChatResponse = self.client.chat(model=self.model_str, messages=messages)
+		return response.message.content or ""
+
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:
 				f.write("Info: " + info + ". you chose: " + chosen_action.name + ". Feedback: " + feedback + ".\n")
-
-	def test_run():
-		print("Test run started...")
-		manager = LLMManager("ministral-3:3b", 1, True)
-		manager.set_sys_prompt("Your goal is to survive!")
-		prompt = "LEFT: There is a Tiger, UP: There is nothing, RIGHT: There is nothing, DOWN: there is nothing"
-
-		action = manager.request_action(0, prompt)
-		if action == Action.LEFT:
-			manager.give_feedback(0, prompt, "You Died!", action)
-		else:
-			manager.give_feedback(0, prompt, "You Survived!", action)
-		print(action.name)

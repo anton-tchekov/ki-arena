@@ -3,15 +3,15 @@
 # =============================================================================
 GRID_SIZE = 20                    # Size of the grid (size x size)
 INITIAL_TREES = 5                # Initial number of trees at reset
-MAX_CYCLES = 100                # Maximum cycles before termination
+MAX_CYCLES = 10000                # Maximum cycles before termination
 
 # =============================================================================
 # RESOURCE SPAWNING SETTINGS
 # Controls how trees and fruits spawn dynamically
 # =============================================================================
 STARTING_FRUIT = 100
-STARTING_WOOD  = 100
-TREE_SPAWN_RATE = 0.1            # Probability (0-1) to spawn a new tree each cycle
+STARTING_WOOD  = 50
+TREE_SPAWN_RATE = 0.2            # Probability (0-1) to spawn a new tree each cycle
 MAX_TREES = 10                   # Maximum number of trees allowed in the world
 FRUIT_SPAWN_RATE = 2.0           # Probability (0-1) per tree to grow fruit each cycle
 FRUIT_GROWTH_AMOUNT = 1          # Number of fruits added when a tree grows
@@ -23,10 +23,10 @@ FRUIT_GROWTH_AMOUNT = 1          # Number of fruits added when a tree grows
 # =============================================================================
 ENABLE_WOOD_CONSUMPTION = True    # Set True to enable wood consumption
 WOOD_CONSUMPTION_RATE = 1         # Wood consumed globally each cycle (if USE_PER_AGENT_CONSUMPTION=False)
-WOOD_CONSUMPTION_PER_AGENT = 1   # Wood consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
+WOOD_CONSUMPTION_PER_AGENT = 0.2   # Wood consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
 ENABLE_FRUIT_CONSUMPTION = True   # Set True to enable fruit consumption
 FRUIT_CONSUMPTION_RATE = 1        # Fruits consumed globally each cycle (if USE_PER_AGENT_CONSUMPTION=False)
-FRUIT_CONSUMPTION_PER_AGENT = 1  # Fruits consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
+FRUIT_CONSUMPTION_PER_AGENT = 0.2  # Fruits consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
 USE_PER_AGENT_CONSUMPTION = True  # Set True to use per-agent consumption, False for global
 
 # =============================================================================

@@ -45,7 +45,7 @@
   - [x] Wo liegen Memory, Planning, Action im Vier-Schichten-Modell?
   - [x] Wer trifft welche Entscheidungen – und warum dort?
 - [x] Minimaler End-to-End-Durchlauf implementiert (Funktion vor Eleganz)
-- [ ] Erste Stolpersteine festgehalten (unklare Doku, Improvisationen, getroffene Annahmen)
+- [?] Erste Stolpersteine festgehalten (unklare Doku, Improvisationen, getroffene Annahmen)
 
 **Pflicht-Deliverable Termin 2**
 
@@ -60,13 +60,13 @@
 **Ziel:** Das System tut, was es tun soll – zumindest im Standardfall.
 
 - [x] Hauptlogik implementiert – projektspezifisch:
-  - [/] **Projekt B:** Spielmechanik + mind. zwei verschiedene Agenten-Typen, die gegeneinander spielen können
+  - [x] **Projekt B:** Spielmechanik + mind. zwei verschiedene Agenten-Typen, die gegeneinander spielen können
 - [ ] Mehrere End-to-End-Durchläufe durchgeführt und protokolliert (Varianz beobachtet)
 - [ ] Auffälliges/unerwartetes Systemverhalten notiert
 
 **Pflicht-Deliverable Termin 3**
 
-- [ ] Lauffähige Kernfunktionalität im Repository
+- [x] Lauffähige Kernfunktionalität im Repository
 - [ ] Kurzes „Lab Notebook" (Markdown-Datei im Repo) mit den Beobachtungen aus den Durchläufen
 
 ---

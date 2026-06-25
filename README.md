@@ -1,6 +1,8 @@
 # ki-arena
 SoSe2026 KI Praktikum Agent Arena Projekt
 
+![Alt Text](sim.gif)
+
 ## Gruppenteilnehmer
 
 - Daniil Khoma
@@ -8,6 +10,16 @@ SoSe2026 KI Praktikum Agent Arena Projekt
 - Anton Tchekov
 
 ## Bedienungsanleitung
+
+### Projektorientierung
+
+Der gesamte Code liegt unter `src/sim/`, Einstiegspunkt ist `main.py`.
+
+- **`environment/`** – Simulationsumgebung: Spielwelt, Regeln, Ressourcen und Visualisierung.
+- **`agents/`** – Die Agententypen: regelbasiert, RL und LLM.
+- **`arena/`** – Ablaufsteuerung der Simulation (Phasen und Episoden).
+- **`analysis/`** – Auswertung und Protokollierung der Läufe.
+- **`llm/`** – Anbindung an ein lokales Sprachmodell über Ollama oder Mistral API.
 
 ### Projekt starten
 
