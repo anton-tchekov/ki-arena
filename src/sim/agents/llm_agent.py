@@ -9,23 +9,25 @@ class LLMAgent(BaseAgent):
         self.index = llm_index
 
     def act(self, obs, info) -> Action:
-        _, _, dy, dx, fruit_on_tree, _, _ = obs
+        x = obs['x']
+        y = obs['y']
+        dx = obs['dx']
+        dy = obs['dy']
 
-        # ToDo: Improve later
-        x = int(dx)
-        y = int(dy)
-
-        print(f"dx: {x}, dy: {y}")
-        location_prompt = f"""You are an agent in a game. You are given target coordinates relative to your position: dx and dy.
+        #print(f"dx: {x}, dy: {y}")
+        location_prompt = f"""
+            You are an agent in a game. You are given target coordinates relative to your position: x: {dy} and y: {dx}.
             Move until your Manhattan distance to the target is exactly 1:
-            abs(dx) + abs(dy) == 1
+            abs(x) + abs(y) == 1
             When this condition is met, immediately choose the action INTERACT.
-            When x positive it means you need to move right, when y positive is that means you need to move down. Same but reversed for negative values. Do not move diagonally.
+            The Interact action does not work if you are diagonally adjacent to the target, or if you are directly on the target so make sure to only interact when either x or y is 0 (not both).
             Do not interact before reaching Manhattan distance 1.
-            
-            You are a collector agent, so you want to interact when next to a tree with fruits (fruit_on_tree={fruit_on_tree}).
-            Your current relative position to the target is dx={x}, dy={y}."""
-
+            If x < 0 then move LEFT
+            if x > 0 then move RIGHT
+            if y < 0 move UP
+            if y > 0 move DOWN
+            if abs(x) + abs(y) == 1 then INTERACT
+            """
         prompt = f"Choose the best action from given options.\n{location_prompt}"
         action = self.llm.request_action(self.index, prompt)
         return action

@@ -15,9 +15,8 @@ def main() -> None:
 
     # Initialize LLM manager (commented out to avoid API calls during testing)
     llm: LLMManagerMistral = LLMManagerMistral("llama3:8b", False)
-    llm.set_sys_prompt("Please justify your action choice in one sentence after the action")
+    llm.set_sys_prompt("Think about it before replying. The final action decision is written at the end. Please justify your action choice in one sentence after the action")
 
-    
     config = EnvConfig()
     agents = {
         #"collector_0": GreedyCollector("collector_0"),
@@ -26,7 +25,7 @@ def main() -> None:
         #"cutter_0": GreedyCutter("cutter_0"),
 
         "collector_0": LLMAgent("collector_0", llm, 0),
-        "cutter_0": LLMAgent("cutter_0", llm, 1),
+        "cutter_0": LLMAgent("cutter_0", llm, 0),
         
         #"collector_0": RLAgent("collector_0"),
         #"cutter_0": RLAgent("cutter_0"),

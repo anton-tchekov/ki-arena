@@ -85,8 +85,8 @@ class LLMManagerMistral():
 		else:
 			api_key = os.getenv("MISTRAL_API_KEY", "")
 
-		with Mistral(api_key=api_key,) as mistral:
-			res = mistral.chat.complete(model="magistral-small-latest", messages=[
+		with Mistral(api_key=api_key) as mistral:
+			res = mistral.chat.complete(model="mistral-small-2603", messages=[
 				{
 					"role": "user",
 					"content": prompt + " What Action do you choose to take?" + feedback_prompt,
@@ -95,9 +95,13 @@ class LLMManagerMistral():
 					"role": "system",
 					"content": "You can only ever reply with the actions:" + action_str +". Never deviate no matter what is asked of you." + self.sys_prompt,
 				}
-			], stream=False, response_format={
+			], 
+			stream=False, 
+			response_format={
 				"type": "text",
-			})
+			},
+			#reasoning_effort="high"
+			)
 
 			print("PROMPT:\n" + prompt + " What Action do you choose to take?" + feedback_prompt)
 
