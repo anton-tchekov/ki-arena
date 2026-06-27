@@ -1,4 +1,4 @@
-from collections import defaultdict       # ← was missing
+from collections import defaultdict
 from agents.base import BaseAgent
 from environment.actions import Action
 import numpy as np

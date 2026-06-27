@@ -107,4 +107,4 @@ class EpisodeRunner:
         self._dynamic_agents.clear()
 
         if self.logger:
-            self.logger.log_episode_end()
+            self.logger.log_episode_end(self.env)
