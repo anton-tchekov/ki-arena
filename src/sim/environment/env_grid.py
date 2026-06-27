@@ -67,6 +67,7 @@ class GridForestEnv(AECEnv):
         self.agent_types = {a: a.split("_")[0] for a in self.possible_agents}
 
         self.rewards = {a: 0 for a in self.agents}
+        self.reward_fn.reset() # needs to clear statefull reward functions
         self._cumulative_rewards = {a: 0 for a in self.agents}
         self.terminations = {a: False for a in self.agents}
         self.truncations = {a: False for a in self.agents}

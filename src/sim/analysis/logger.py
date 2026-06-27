@@ -10,7 +10,7 @@ class Logger:
 
 class PrintLogger(Logger):
     def log_step(self, agent, obs, action, reward):
-        #print(f"{agent} | action={action} | reward={reward}")
+        print(f"{agent} | action={action} | reward={reward}")
         pass
 
     def log_episode_end(self, env):

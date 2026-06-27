@@ -28,7 +28,13 @@ class ScarcityPenaltyReward(RewardFunction):
 class CollectorRewardFn(RewardFunction):
     """Learns to collect fruit as fast as possible."""
     def compute(self, world, agent, action, result) -> float:
-        if result["type"] == "collect":
+        # handle result being a string, dict, or None
+        result_type = (
+            result.get("type") if isinstance(result, dict)
+            else result if isinstance(result, str)
+            else None
+        )
+        if result_type == "collect":
             return 5.0
         if action == Action.INTERACT and result is None:
             return -0.2       # tried to interact with nothing — punish wasted action
@@ -37,12 +43,17 @@ class CollectorRewardFn(RewardFunction):
 class CutterRewardFn(RewardFunction):
     """Learns to cut trees."""
     def compute(self, world, agent, action, result) -> float:
-        if result["type"] == "cut":
+        result_type = (
+            result.get("type") if isinstance(result, dict)
+            else result if isinstance(result, str)
+            else None
+        )
+        if result_type == "cut":
             return 5.0
         if world.is_adjacent_to_tree(agent):
-            return 0.3        # shaped reward: reward proximity to trees
+            return 0.3 # shaped reward: reward proximity to trees
         return -0.05
-
+    
 class ExplorerRewardFn(RewardFunction):
     """Learns to cover new ground."""
     def __init__(self):
