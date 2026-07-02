@@ -12,7 +12,7 @@ from analysis.run_logger import RunLogger
 from analysis.statistics import SimulationStats
 from agents.rl_agent import RLAgent
 from agents.rule_agent import GreedyCollector, GreedyCutter
-from environment.reward import CollectorRewardFn, CutterRewardFn
+from environment.reward import CompositeRewardFn, CollectorRewardFn, CutterRewardFn, StepPenaltyFn, ExplorerRewardFn  
 from llm.llmmanager import LLMManager
 from llm.llmmanager_mistral import LLMManagerMistral
 
@@ -30,12 +30,16 @@ def main() -> None:
         #"collector_0": LLMAgent("collector_0", llm, 0),
         #"collector_1": LLMAgent("collector_1", llm, 0),
 
-        "collector_0": GreedyCollector("collector_0"),
-        "collector_1": GreedyCollector("collector_1"),
-        "collector_2": GreedyCollector("collector_2"),
-        "cutter_0": GreedyCutter("cutter_0"),
-        "cutter_1": GreedyCutter("cutter_1"),
+        #"collector_0": GreedyCollector("collector_0"),
+        #"collector_1": GreedyCollector("collector_1"),
+        #"collector_2": GreedyCollector("collector_2"),
+        #"cutter_0": GreedyCutter("cutter_0"),
+        #"cutter_1": GreedyCutter("cutter_1"),
 
+        
+        "collector_0": RLAgent("collector_0", debug=True),
+        "collector_1": RLAgent("collector_1", debug=True),
+        "cutter_0": RLAgent("cutter_0", debug=True),
         #"cutter_1": LLMAgent("cutter_1", llm, 0),
         #"collector_0": RLAgent("collector_0"),
         #"cutter_0": RLAgent("cutter_0"),
@@ -89,16 +93,23 @@ def main() -> None:
             if hasattr(agent, "load"):
                 agent.load()
 
-    learning = False  # set to False to skip training and run execution directly
+    learning = True  # set to False to skip training and run execution directly
     if learning:
         # ToDo: Separate training cycle
         # swap config to use CutterRewardFn for training the RL agent
-        config.reward_fn = CutterRewardFn()
-
+        config.reward_fn = CompositeRewardFn(
+            (1.0, CollectorRewardFn()),   # +5 on collect
+            (1.0, CutterRewardFn()),      # +5 on cut, +0.3 near trees
+            (0.5, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
+            (1.0, StepPenaltyFn(-0.05)), # -0.05 every step
+        )
+        
         # ToDo: Separate training cycle
-        arena.run_phase(TrainingPhase(episodes=300))
+        arena.run_phase(TrainingPhase(episodes=100))
         print("Training finished. Running learned execution phase...")
 
+
+    arena.run_phase(ExecutionPhase())
     # Print the end-of-run statistics even if the window is closed mid-run
     # (closing a window raises SystemExit, which still runs this finally block).
     try:
@@ -118,6 +129,11 @@ def main() -> None:
                 print(f"Saved replay to {path}")
             except Exception as e:
                 print(f"Could not save replay: {e}")
+    #try:
+    #    arena.run_phase(ExecutionPhase())
+    #finally:
+    #    print("\nEpisode complete!")
+    #    print(SimulationStats.summary(env))
 
 if __name__ == "__main__":
     main()

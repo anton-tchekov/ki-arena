@@ -94,7 +94,9 @@ class LLMManagerMistral():
 					"role": "system",
 					"content": "You can only ever reply with the actions:" + action_str +". Never deviate no matter what is asked of you." + self.sys_prompt,
 				}
-			], stream=False, response_format={
+			], 
+			stream=False, 
+			response_format={
 				"type": "text",
 			})
 			latency = time.time() - t0

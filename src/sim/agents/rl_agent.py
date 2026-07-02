@@ -1,4 +1,4 @@
-from collections import defaultdict       # ← was missing
+from collections import defaultdict
 from agents.base import BaseAgent
 from environment.actions import Action
 import numpy as np
@@ -27,15 +27,16 @@ class RLAgent(BaseAgent):
         RLAgent("collector_0", discretize_bins=(3, 3, 1, 1, 5))
     """
 
-    DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20)  # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
+    DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
 
     def __init__(
         self,
         name: str,
-        discretize_bins: tuple|None = None,
+        discretize_bins: tuple | None = None,
         epsilon: float = 0.3,
         learning_rate: float = 0.1,
         gamma: float = 0.99,
+        debug: bool = False,
     ):
         super().__init__(name)
         self.bins = discretize_bins or self.DEFAULT_BINS
@@ -43,71 +44,94 @@ class RLAgent(BaseAgent):
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.action_space = list(Action)
-        self.q_table = defaultdict(lambda: np.zeros(len(self.action_space), dtype=np.float32))
+        self.debug = debug
+        self._step_count = 0
+        self._episode_count = 0
+
+        n = len(self.action_space)
+        # small random init breaks the all-zeros argmax tie
+        self.q_table = defaultdict(
+            lambda: np.random.uniform(-0.01, 0.01, n).astype(np.float32)
+        )
         self.transitions = []
         self.training = True
 
-    def _obs_dict_to_list(self, obs_dict) -> list:
+    def _obs_to_list(self, obs) -> list:
         """
         Convert dictionary observation to list format for discretization.
         Extracts nearest tree information from trees array.
         Returns: [x, y, dx_tree, dy_tree, total_fruit, wood, fruit]
         """
-        x = obs_dict['x']
-        y = obs_dict['y']
-        trees = obs_dict['trees']
-        total_fruit = obs_dict['total_fruit']
-        wood_count = obs_dict['wood_count']
-        fruit_count = obs_dict['fruit_count']
-
-        # Find nearest tree (trees are keyed (x, y), same as agent positions)
-        if trees:
-            tx, ty = min(
-                trees.keys(),
-                key=lambda t: abs(t[0] - x) + abs(t[1] - y)
-            )
-            dx = tx - x
-            dy = ty - y
-        else:
-            dx, dy = 0, 0
-
-        return [x, y, dx, dy, total_fruit, wood_count, fruit_count]
+        if isinstance(obs, dict):
+            x, y = obs['x'], obs['y']
+            trees = obs.get('trees', {})
+            if trees:
+                tx, ty = min(trees.keys(), key=lambda t: abs(t[0]-x) + abs(t[1]-y))
+                dx, dy = tx - x, ty - y
+            else:
+                dx, dy = 0, 0
+            return [x, y, dx, dy, obs['total_fruit'], obs['wood_count'], obs['fruit_count']]
+        # already array/list
+        return list(obs)
 
     def discretize(self, obs) -> tuple:
         """
         Bucket each obs dimension by its corresponding bin size.
         Direction-like values (bin=1) become sign only: -1 / 0 / +1.
         """
-        assert len(obs) == len(self.bins), (
-            f"Obs length {len(obs)} doesn't match bins length {len(self.bins)}. "
-            f"Pass discretize_bins=(...) with one entry per obs dimension."
+        obs_list = self._obs_to_list(obs)
+        assert len(obs_list) == len(self.bins), (
+            f"{self.name}: obs length {len(obs_list)} != bins length {len(self.bins)}"
         )
         state = []
-        for val, bin_size in zip(obs, self.bins):
-            if bin_size == 1:
-                state.append(int(np.sign(val)))   # -1 / 0 / +1
-            else:
-                state.append(int(val) // bin_size)
+        for val, bin_size in zip(obs_list, self.bins):
+            state.append(int(np.sign(val)) if bin_size == 1 else int(val) // bin_size)
         return tuple(state)
 
     def act(self, obs, info) -> Action:
         # Convert dictionary observation to list format for discretization
-        obs_list = self._obs_dict_to_list(obs)
-        state = self.discretize(obs_list)
-        if self.training and np.random.rand() < self.epsilon:
-            return self.action_space[np.random.randint(len(self.action_space))]
-        return self.action_space[int(np.argmax(self.q_table[state]))]
+        state = self.discretize(obs)
+        exploring = self.training and np.random.rand() < self.epsilon
+        if exploring:
+            action = self.action_space[np.random.randint(len(self.action_space))]
+        else:
+            action = self.action_space[int(np.argmax(self.q_table[state]))]
+
+        if self.debug and self._step_count % 50 == 0:
+            print(f"[{self.name}] ep={self._episode_count} ε={self.epsilon:.3f} "
+                  f"exploring={exploring} action={action.name} "
+                  f"state={state} Q={self.q_table[state].round(2)}")
+        self._step_count += 1
+        return action
 
     def after_action(self, obs, action, reward, next_obs, done, info):
         if action is None:
             return
-        s  = self.discretize(self._obs_dict_to_list(obs))
-        s_ = self.discretize(self._obs_dict_to_list(next_obs)) if next_obs is not None else None
+        s  = self.discretize(obs)
+        s_ = self.discretize(next_obs) if next_obs is not None else None
         self.transitions.append((s, action, reward, s_, done))
 
     def train_step(self):
-        if not self.training or not self.transitions:
+        if not self.training:
             return
+        if not self.transitions:
+            if self.debug:
+                print(f"[{self.name}] WARNING: train_step called with empty buffer!")
+            return
+        
+        # Temporarily for debug
+        # ------
+        rewards = [t[2] for t in self.transitions]
+        print(f"[{self.name}] rewards: min={min(rewards):.2f} max={max(rewards):.2f} "
+            f"mean={sum(rewards)/len(rewards):.3f} "
+            f"nonzero={sum(1 for r in rewards if abs(r) > 0.01)}/{len(rewards)}")
+        # ------
+        
+        if self.debug:
+            print(f"[{self.name}] training on {len(self.transitions)} transitions | "
+                  f"unique states: {len(set(t[0] for t in self.transitions))} | "
+                  f"q_table size: {len(self.q_table)} | ε={self.epsilon:.3f}")
+
         for state, action, reward, next_state, done in self.transitions:
             idx = self.action_space.index(action)
             td_target = reward
@@ -116,8 +140,10 @@ class RLAgent(BaseAgent):
             self.q_table[state][idx] += self.learning_rate * (
                 td_target - self.q_table[state][idx]
             )
+
         self.transitions.clear()
         self.epsilon = max(0.01, self.epsilon * 0.995)
+        self._episode_count += 1
 
     def observe(self, obs, reward, done, info):
         pass
@@ -158,4 +184,4 @@ class RLAgent(BaseAgent):
         )
         self.epsilon = payload["epsilon"]
         self.training = payload["training"]
-        print(f"Loaded {self.name} ← {path}  (ε={self.epsilon:.3f})")
+        print(f"Loaded {self.name} ← {path}  (ε={self.epsilon:.3f})")  

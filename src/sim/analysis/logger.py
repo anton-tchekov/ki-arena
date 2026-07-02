@@ -1,17 +1,21 @@
+from analysis.statistics import SimulationStats
+
 class Logger:
     def log_step(self, agent, obs, action, reward):
         pass
 
-    def log_episode_end(self):
+    def log_episode_end(self, env):
         pass
 
 
 class PrintLogger(Logger):
     def log_step(self, agent, obs, action, reward):
         print(f"{agent} | action={action} | reward={reward}")
+        pass
 
-    def log_episode_end(self):
+    def log_episode_end(self, env):
         print("Episode finished\n")
+        print(SimulationStats.summary(env))
 
 
 class CsvLogger(Logger):

@@ -21,7 +21,7 @@ class EpisodeRunner:
             self._dynamic_agents[agent_name] = cls(agent_name)
         return self._dynamic_agents[agent_name]
 
-    def run_episode(self, render=False):
+    def run_episode(self, render=False, training=False):
         self.env.reset()
         shared_blackboard.clear()  # start each episode with an empty notice board
         last_rewards: dict[str, float] = {a: 0 for a in self.agents}
@@ -71,7 +71,7 @@ class EpisodeRunner:
                 if hasattr(agent, "after_action"):
                     agent.after_action(obs, action, reward, next_obs, post_done, info)
 
-                if self.logger:
+                if self.logger and not training:
                     self.logger.log_step(agent_name, obs, action, reward)
 
                 if render:
@@ -106,5 +106,5 @@ class EpisodeRunner:
             agent.on_episode_end()
         self._dynamic_agents.clear()
 
-        if self.logger:
-            self.logger.log_episode_end()
+        if self.logger and not training:
+            self.logger.log_episode_end(self.env)

@@ -84,7 +84,7 @@ class GridWorld:
     def adjacent_tree(self, agent):
         x, y = self.positions[agent]
         for (tx, ty) in self.trees.keys():
-            if abs(tx - x) + abs(ty - y) == 1:
+            if abs(tx - x) + abs(ty - y) <= 1:
                 return (tx, ty)
         return None
 
