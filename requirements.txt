@@ -1,0 +1,10 @@
+# Laufzeit-Abhängigkeiten der Simulation.
+# Installieren mit:  pip install -r requirements.txt
+pettingzoo      # Multi-Agent-Umgebung (AEC-API)
+gymnasium       # Action-/Observation-Spaces
+numpy           # Grid, Positionen, Q-Tabelle des RL-Agenten
+matplotlib      # Visualisierung (Grid + Control Panel)
+
+# Nur für LLM-Agenten nötig:
+ollama          # lokales Modell über Ollama
+mistralai       # Mistral-API

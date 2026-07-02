@@ -2,3 +2,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info
+.ipynb_checkpoints/
+
+# Per-run simulation log (overwritten each run)
+logfile.txt
+
+# Structured LLM call log (one JSON line per call)
+llm_calls.jsonl
+
+# Saved runs / replays
+saves/
+
+# Per-LLM experience notes written at runtime
+feedback/

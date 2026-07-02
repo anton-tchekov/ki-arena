@@ -1,6 +1,16 @@
+import os
+import time
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, Slider
 from typing import Optional
+
+
+def _map_ax(pos, region):
+    """Map axis [l, b, w, h] from local [0,1]² to figure coords within region [rl, rb, rw, rh]."""
+    rl, rb, rw, rh = region
+    l, b, w, h = pos
+    return [rl + l * rw, rb + b * rh, w * rw, h * rh]
 
 
 def _bind_window_close(fig, callback) -> None:
@@ -33,27 +43,47 @@ class ControlPanel:
                         runner restores full env state then clears this flag
     """
 
-    def __init__(self):
+    def __init__(self, fig=None, region=(0.0, 0.0, 1.0, 1.0)):
         self.paused = False
         self.view_index = 0
         self.view_changed = False
         self.needs_restore = False
         self.quit = False
         self.tick_delay = 0.05  # seconds the renderer waits between steps
-        
+
+        # Replay menu state: set to a file path or the string "LIVE" once chosen.
+        self.replay_choice = None
+        self._menu_axes = []
+        self._menu_buttons = []
+
+        # Step mode: set when the user presses Next at the latest cycle while
+        # paused, asking a live run to advance exactly one cycle then re-pause.
+        self.step_request = False
+
+        # Replay playback speed. During a replay the speed slider is reused as a
+        # "cycles per second" control (instead of the live "delay" meaning).
+        self.replay_mode = False
+        self.replay_cps = 20.0
+        self._cps_max = 240.0  # cycles/sec at the slider's far right
+
         # Store history data for graph click mapping
         self._graph_cycles = []
         self._graph_history = None
 
-        self.fig = plt.figure("Ki-Arena Control Panel", figsize=(5, 5.5))
-        # close_event is a fallback; the WM protocol below is what makes
-        # closing detectable *synchronously* while the sim loop is paused.
-        self.fig.canvas.mpl_connect("close_event", self._on_close)
-        _bind_window_close(self.fig, self._on_close)
+        if fig is None:
+            self.fig = plt.figure("Ki-Arena Control Panel", figsize=(5, 5.5))
+            self.fig.canvas.mpl_connect("close_event", self._on_close)
+            _bind_window_close(self.fig, self._on_close)
+        else:
+            # Shared figure provided by the renderer; close events bound there.
+            self.fig = fig
 
-        ax_rw = self.fig.add_axes([0.03, 0.90, 0.18, 0.06])
-        ax_pp = self.fig.add_axes([0.26, 0.90, 0.48, 0.06])
-        ax_fw = self.fig.add_axes([0.79, 0.90, 0.18, 0.06])
+        rl, rb, rw, rh = region
+        self._region = region
+
+        ax_rw = self.fig.add_axes(_map_ax([0.03, 0.90, 0.18, 0.06], region))
+        ax_pp = self.fig.add_axes(_map_ax([0.26, 0.90, 0.48, 0.06], region))
+        ax_fw = self.fig.add_axes(_map_ax([0.79, 0.90, 0.18, 0.06], region))
 
         self.btn_rewind  = Button(ax_rw, "< Prev")
         self.btn_pause   = Button(ax_pp, "Pause")
@@ -64,7 +94,7 @@ class ControlPanel:
         self.btn_forward.on_clicked(self._on_forward)
 
         self._label = self.fig.text(
-            0.5, 0.985, "",
+            rl + 0.5 * rw, rb + 0.985 * rh, "",
             ha="center", va="top",
             fontsize=9
         )
@@ -72,7 +102,7 @@ class ControlPanel:
         # Tick-speed slider. The handle position (0..1) is mapped cubically to
         # the delay, so most of the travel gives fine control in the small-delay
         # range between 0 and the default, while the top still reaches 1.0 s.
-        ax_speed = self.fig.add_axes([0.30, 0.855, 0.45, 0.02])
+        ax_speed = self.fig.add_axes(_map_ax([0.30, 0.855, 0.45, 0.02], region))
         self.slider_speed = Slider(
             ax_speed, "Delay (s)", 0.0, 1.0,
             valinit=self.tick_delay ** (1 / 3), valstep=0.001
@@ -80,22 +110,49 @@ class ControlPanel:
         self.slider_speed.valtext.set_text(f"{self.tick_delay:.3f}")
         self.slider_speed.on_changed(self._on_speed_change)
 
-        # Live graph of resources / population over cycles
-        self.ax_graph = self.fig.add_axes([0.12, 0.45, 0.82, 0.37])
-        # Enable click events on the graph
+        # Three stacked graphs over cycles, each on its own scale so nothing gets
+        # squashed: resources (wood/fruit) on top, then population head-counts,
+        # then average age of the living agents at the bottom.
+        self.ax_graph = self.fig.add_axes(_map_ax([0.12, 0.70, 0.82, 0.13], region))       # resources
+        self.ax_graph_pop = self.fig.add_axes(_map_ax([0.12, 0.555, 0.82, 0.12], region))  # population
+        self.ax_graph_age = self.fig.add_axes(_map_ax([0.12, 0.41, 0.82, 0.12], region))   # average age
+        # Enable click events on all graphs (for rewind-by-click)
         self.ax_graph.set_picker(True)
+        self.ax_graph_pop.set_picker(True)
+        self.ax_graph_age.set_picker(True)
         self.fig.canvas.mpl_connect('button_press_event', self._on_graph_click)
 
         # Blackboard readout: each agent's current announcement, one per line
-        self.ax_board = self.fig.add_axes([0.06, 0.04, 0.90, 0.34])
+        self.ax_board = self.fig.add_axes(_map_ax([0.06, 0.04, 0.90, 0.30], region))
         self.update_blackboard({})
 
     def _on_close(self, event=None):
         self.quit = True
 
     def _on_speed_change(self, pos):
-        self.tick_delay = float(pos) ** 3
-        self.slider_speed.valtext.set_text(f"{self.tick_delay:.3f}")
+        pos = float(pos)
+        # Live runs: cubic map to a small per-step delay (fine control near 0).
+        self.tick_delay = pos ** 3
+        # Replays: exponential map to cycles/sec (1 at far left .. _cps_max right).
+        self.replay_cps = self._cps_max ** pos
+        if self.replay_mode:
+            self.slider_speed.valtext.set_text(f"{self.replay_cps:.0f}")
+        else:
+            self.slider_speed.valtext.set_text(f"{self.tick_delay:.3f}")
+
+    def set_replay_speed_mode(self, on: bool) -> None:
+        """Relabel the speed slider as cycles/sec (replay) or delay (live)."""
+        import math
+        self.replay_mode = on
+        if on:
+            self.slider_speed.label.set_text("Cycles/s")
+            # Default ~20 cycles/sec: find the handle position that maps to it.
+            default_pos = math.log(20.0) / math.log(self._cps_max)
+            self.slider_speed.set_val(default_pos)  # fires _on_speed_change
+        else:
+            self.slider_speed.label.set_text("Delay (s)")
+            self.slider_speed.valtext.set_text(f"{self.tick_delay:.3f}")
+        self.fig.canvas.draw_idle()
 
     # ------------------------------------------------------------------
     def _toggle_pause(self, event):
@@ -112,8 +169,15 @@ class ControlPanel:
     def _on_forward(self, event):
         if not self.paused:
             return
-        self.view_index += 1  # clamped to latest_index by renderer
-        self.view_changed = True
+        # Up to the latest recorded cycle, Next just browses forward through the
+        # history. At (or past) the latest cycle it asks the live sim to advance
+        # one more cycle — that gives step-by-step iteration while paused.
+        latest = len(self._graph_cycles) - 1
+        if self.view_index >= latest:
+            self.step_request = True
+        else:
+            self.view_index += 1
+            self.view_changed = True
 
     def _on_graph_click(self, event):
         """
@@ -123,8 +187,8 @@ class ControlPanel:
         if not self.paused:
             return
         
-        # Check if click was on the graph axes
-        if event.inaxes != self.ax_graph:
+        # Check if click was on any of the three stacked graphs.
+        if event.inaxes not in (self.ax_graph, self.ax_graph_pop, self.ax_graph_age):
             return
         
         # Only handle left mouse button clicks
@@ -175,25 +239,48 @@ class ControlPanel:
         if history is None or len(history) == 0:
             return
 
-        cycles, wood, fruits, population = history.series()
-        
+        cycles, wood, fruits, population, collectors, cutters, avg_age = history.series()
+
         # Store cycles and history for click handling
         self._graph_cycles = cycles
         self._graph_history = history
 
+        # --- Top graph: resources (wood / fruit) ---
         ax = self.ax_graph
         ax.clear()
         ax.plot(cycles, wood, color="#8d6e63", label="Wood")
         ax.plot(cycles, fruits, color="#fdd835", label="Fruit")
-        ax.plot(cycles, population, color="#42a5f5", label="Population")
-
-        if current_index is not None and 0 <= current_index < len(cycles):
-            ax.axvline(cycles[current_index], color="#888888",
-                       linestyle="--", linewidth=1)
-
-        ax.set_xlabel("Cycle", fontsize=8)
-        ax.tick_params(labelsize=7)
+        ax.set_ylabel("Wood / Fruit", fontsize=8)
+        # X labels only on the bottom graph; all three share the same cycle axis.
+        ax.tick_params(labelsize=7, labelbottom=False)
+        ax.set_ylim(bottom=0)
         ax.legend(loc="upper left", fontsize=7)
+
+        # --- Middle graph: population (colours match the grid) ---
+        axp = self.ax_graph_pop
+        axp.clear()
+        axp.plot(cycles, population, color="#cfcfcf", label="Population")
+        axp.plot(cycles, collectors, color="#42a5f5", linestyle="--", linewidth=0.9, label="Collectors")
+        axp.plot(cycles, cutters, color="#ef5350", linestyle="--", linewidth=0.9, label="Cutters")
+        axp.set_ylabel("Population", fontsize=8)
+        axp.tick_params(labelsize=7, labelbottom=False)
+        axp.set_ylim(bottom=0)  # head-counts never go negative; keep baseline at 0
+        axp.legend(loc="upper left", fontsize=7)
+
+        # --- Bottom graph: average age of the living population ---
+        axa = self.ax_graph_age
+        axa.clear()
+        axa.plot(cycles, avg_age, color="#ab47bc", label="Avg age")
+        axa.set_xlabel("Cycle", fontsize=8)
+        axa.set_ylabel("Avg age", fontsize=8)
+        axa.tick_params(labelsize=7)
+        axa.set_ylim(bottom=0)
+
+        # Browse marker on all graphs.
+        if current_index is not None and 0 <= current_index < len(cycles):
+            for a in (ax, axp, axa):
+                a.axvline(cycles[current_index], color="#888888",
+                          linestyle="--", linewidth=1)
 
         self.fig.canvas.draw_idle()
         try:
@@ -231,12 +318,106 @@ class ControlPanel:
         self.fig.canvas.draw_idle()
 
     # ------------------------------------------------------------------
+    # Replay menu (shown at startup when saved runs exist)
+    # ------------------------------------------------------------------
+    def show_replay_menu(self, save_paths: list[str]) -> None:
+        """
+        Show a clickable list of saved runs in the right panel, plus a button to
+        start a fresh live run. Sets ``self.replay_choice`` to the picked path or
+        the string "LIVE" when the user clicks. The big graph/blackboard frames
+        are hidden so the menu stands alone.
+        """
+        self.replay_choice = None
+        self._menu_axes = []
+        self._menu_buttons = []
+
+        # Hide the normal panel widgets so the menu stands alone.
+        self._hidden_for_menu = [
+            self.ax_graph, self.ax_graph_pop, self.ax_graph_age, self.ax_board,
+            self.btn_rewind.ax, self.btn_pause.ax, self.btn_forward.ax,
+            self.slider_speed.ax,
+        ]
+        for ax in self._hidden_for_menu:
+            ax.set_visible(False)
+
+        if save_paths:
+            self.set_label("Pick a replay to watch, or start a new run")
+        else:
+            self.set_label("No replays yet — start a new run")
+
+        # New live run on top.
+        ax_live = self.fig.add_axes(_map_ax([0.12, 0.80, 0.76, 0.06], self._region))
+        btn_live = Button(ax_live, "▶  New live run")
+        btn_live.on_clicked(lambda _e: self._choose_replay("LIVE"))
+        self._menu_axes.append(ax_live)
+        self._menu_buttons.append(btn_live)
+
+        if save_paths:
+            # One button per saved run (newest first); cap so they fit the panel.
+            y = 0.71
+            for path in save_paths[:11]:
+                name = os.path.basename(path)
+                ax = self.fig.add_axes(_map_ax([0.12, y, 0.76, 0.045], self._region))
+                btn = Button(ax, name)
+                btn.on_clicked(lambda _e, p=path: self._choose_replay(p))
+                self._menu_axes.append(ax)
+                self._menu_buttons.append(btn)
+                y -= 0.058
+        else:
+            # No saved runs: show a message where the list would be.
+            ax_msg = self.fig.add_axes(_map_ax([0.12, 0.66, 0.76, 0.08], self._region))
+            ax_msg.axis("off")
+            ax_msg.text(0.5, 0.5, "(no saved runs found)", ha="center", va="center",
+                        fontsize=9, color="gray", style="italic")
+            self._menu_axes.append(ax_msg)
+
+        self.fig.canvas.draw_idle()
+
+    def _choose_replay(self, choice: str) -> None:
+        self.replay_choice = choice
+
+    def wait_for_replay_choice(self) -> Optional[str]:
+        """Block until a menu button is clicked or the window is closed. Uses
+        plt.pause so the window is shown and clicks are processed. Returns the
+        choice, or None if the window was closed."""
+        while self.replay_choice is None and not self.quit:
+            try:
+                plt.pause(0.05)
+            except Exception:
+                time.sleep(0.05)
+            if self.fig is not None and not plt.fignum_exists(self.fig.number):
+                self.quit = True
+        return None if self.quit else self.replay_choice
+
+    def hide_replay_menu(self) -> None:
+        """Remove the menu buttons and restore the normal panel widgets."""
+        for ax in self._menu_axes:
+            try:
+                self.fig.delaxes(ax)
+            except Exception:
+                pass
+        self._menu_axes = []
+        self._menu_buttons = []
+        for ax in getattr(self, "_hidden_for_menu", []):
+            ax.set_visible(True)
+        # The caller decides the paused state afterwards (live and replay both
+        # start paused), so this only restores the widgets.
+        self.fig.canvas.draw_idle()
+
+    # ------------------------------------------------------------------
     def set_label(self, text: str) -> None:
         self._label.set_text(text)
         self.fig.canvas.draw_idle()
 
     # ------------------------------------------------------------------
     def close(self):
+        # When the figure is shared with the renderer, the renderer owns closing it.
+        # Only close here when ControlPanel owns its own standalone figure.
+        if self.fig is not None and not plt.fignum_exists(self.fig.number):
+            return
         if self.fig is not None:
-            plt.close(self.fig)
+            try:
+                plt.close(self.fig)
+            except Exception:
+                pass
             self.fig = None

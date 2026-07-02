@@ -9,6 +9,7 @@ from mistralai.client import Mistral
 import json
 
 from environment.actions import Action
+from analysis.llm_logger import LLMCallLogger
 
 class LLMManagerMistral():
 	n = 0   # Number of LLMs
@@ -28,7 +29,9 @@ class LLMManagerMistral():
 	def __init__(self, use_experience: bool = False):
 		self.use_experience = use_experience
 		os.makedirs("feedback", exist_ok=True)
-		pass
+		# Observability: log every LLM call (prompt, response, latency, tokens).
+		log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm_calls.jsonl")
+		self.call_log = LLMCallLogger(os.path.normpath(log_path))
 
 	def set_sys_prompt(self, prompt: str):
 		self.sys_prompt = prompt
@@ -78,11 +81,14 @@ class LLMManagerMistral():
 		else:
 			feedback_prompt = ""
 
+		full_prompt = prompt + " What Action do you choose to take?" + feedback_prompt
+		model = "mistral-small-2603"
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
-			res = mistral.chat.complete(model="ministral-3b-2512", messages=[
+			t0 = time.time()
+			res = mistral.chat.complete(model=model, messages=[
 				{
 					"role": "user",
-					"content": prompt + " What Action do you choose to take?" + feedback_prompt,
+					"content": full_prompt,
 				},
 				{
 					"role": "system",
@@ -91,15 +97,13 @@ class LLMManagerMistral():
 			], stream=False, response_format={
 				"type": "text",
 			})
-
-			#print("PROMPT:\n" + prompt + " What Action do you choose to take?" + feedback_prompt)
-
-			# Handle response
-			#print(res)
+			latency = time.time() - t0
 
 		# Parse the action from the response
 		action_resp = res.choices[0].message.content
 		print("RESPONSE: " + action_resp)
+		self.call_log.log(llm_index, model, full_prompt, action_resp, latency,
+			getattr(res, "usage", None))
 		# self.give_feedback(0, "", action_resp, self.parse_action(action_resp))
 		parse_result = self.parse_action(action_resp)
 		#print("PARSE RESULT: " + str(parse_result))
@@ -120,15 +124,22 @@ class LLMManagerMistral():
 				file.seek(0)
 				feedback_prompt = " Your past feedback includes: " + file.read()
 
-		messages = [{"role": "user", "content": prompt + feedback_prompt}]
+		full_prompt = prompt + feedback_prompt
+		messages = [{"role": "user", "content": full_prompt}]
 		if self.sys_prompt:
 			messages.append({"role": "system", "content": self.sys_prompt})
 
+		model = "magistral-small-latest"
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", "")) as mistral:
-			res = mistral.chat.complete(model="magistral-small-latest", messages=messages,
+			t0 = time.time()
+			res = mistral.chat.complete(model=model, messages=messages,
 				stream=False, response_format={"type": "text"})
+			latency = time.time() - t0
 
-		return res.choices[0].message.content or ""
+		response = res.choices[0].message.content or ""
+		self.call_log.log(llm_index, model, full_prompt, response, latency,
+			getattr(res, "usage", None))
+		return response
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:

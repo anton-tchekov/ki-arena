@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 from environment.world_grid import GridWorld
-from environment.control_panel import ControlPanel, _bind_window_close
+from environment.control_panel import ControlPanel, _bind_window_close, _map_ax
 
 
 def _fmt(x):
@@ -16,8 +16,6 @@ def _fmt(x):
 
 class GridWorldRenderer:
     def __init__(self):
-        self.control_panel = ControlPanel()
-
         self.default_config = {
             "colors": {
                 "empty": "#1e1e1e",
@@ -28,11 +26,22 @@ class GridWorldRenderer:
             },
             "show_text": True,
             "show_grid": True,
-            "figure_size": (6, 6),
+            "figure_size": (6, 6),  # kept for API compatibility; combined figure ignores this
         }
 
-        self.fig = None
-        self.ax = None
+        # Single combined figure: control panel (left 44%) + grid (right 56%)
+        # This avoids two separate OS windows which cannot be positioned on Wayland/GTK4.
+        self.fig = plt.figure("Ki-Arena", figsize=(11, 6))
+        _bind_window_close(self.fig, self._on_close_shared)
+
+        # Grid axes occupy the left portion of the combined figure
+        self.ax = self.fig.add_axes([0.02, 0.06, 0.525, 0.87])
+
+        # Control panel widgets live in the right 44% of the same figure
+        self.control_panel = ControlPanel(fig=self.fig, region=(0.555, 0.0, 0.44, 1.0))
+
+        # close_event on the shared figure mirrors to the control panel quit flag
+        self.fig.canvas.mpl_connect("close_event", lambda e: self.control_panel._on_close())
 
         # Set by the runner before the first render call
         self.state_history = None
@@ -48,6 +57,9 @@ class GridWorldRenderer:
         # Frame-rate cap for the "max speed" (delay == 0) path
         self._last_draw_time = 0.0
         self._min_frame_interval = 1.0 / 30.0
+
+        # Target cycle while running a single-cycle "Next" step (None = not stepping)
+        self._step_target_cycle = None
 
     # ------------------------------------------------------------------
     # Public
@@ -93,27 +105,47 @@ class GridWorldRenderer:
         if self._should_quit():
             self._quit()
 
+    def _status_text(self, cycle) -> str:
+        """Cycle plus live demographics (death causes + sustainable population),
+        read from the world mirror the env keeps up to date each cycle."""
+        w = self._last_world
+        parts = [f"Cycle: {cycle}"]
+        dbc = getattr(w, "deaths_by_cause", None)
+        if dbc is not None:
+            parts.append(
+                f"deaths  age:{dbc.get('old age', 0)}  "
+                f"fruit:{dbc.get('starvation_fruit', 0)}  wood:{dbc.get('starvation_wood', 0)}"
+            )
+        avg = getattr(w, "avg_population", None)
+        if avg is not None:
+            parts.append(f"sustainable pop: {avg:.1f}")
+        return "    |    ".join(parts)
+
     def _refresh_panel(self):
         """Update the cycle label, graph and blackboard — once per new cycle."""
         notes = self.blackboard.read() if self.blackboard is not None else {}
         hist = self.state_history
         if hist is None or len(hist) == 0:
             self.control_panel.set_label(
-                f"Cycle: {getattr(self._last_world, 'cycle', 0)}"
+                self._status_text(getattr(self._last_world, 'cycle', 0))
             )
             self.control_panel.update_blackboard(notes)
             return
         if len(hist) != self._last_graph_len:
             self.control_panel.set_label(
-                f"Cycle: {hist.cycle_at(hist.latest_index)}"
+                self._status_text(hist.cycle_at(hist.latest_index))
             )
             # Blackboard first, then the graph — the graph's flush renders both.
             self.control_panel.update_blackboard(notes)
             self.control_panel.update_graph(hist)
             self._last_graph_len = len(hist)
 
+    def _on_close_shared(self, event=None):
+        """Called when the combined figure window is closed."""
+        self.control_panel._on_close()
+
     def _quit(self):
-        """Tear down both windows and stop the whole program."""
+        """Tear down the window and stop the whole program."""
         try:
             plt.close("all")
         except Exception:
@@ -141,35 +173,106 @@ class GridWorldRenderer:
                 return
 
     def _flush_gui(self):
-        """Process pending GUI events for both windows without blocking."""
-        for fig in (self.control_panel.fig, self.fig):
-            if fig is None:
-                continue
-            try:
-                fig.canvas.flush_events()
-            except Exception:
-                pass
+        """Process pending GUI events without blocking."""
+        try:
+            self.fig.canvas.flush_events()
+        except Exception:
+            pass
 
     def close(self):
         if self.fig:
             plt.close(self.fig)
-        self.control_panel.close()
+
+    # ------------------------------------------------------------------
+    # Replay playback (no env stepping — just displays saved snapshots)
+    # ------------------------------------------------------------------
+    def play_replay(self, history, world) -> None:
+        """
+        Play back a loaded StateHistory. Starts paused on the first frame; the
+        same controls as a live run work: Pause/Resume plays or stops, Prev/Next
+        and clicking the graph scrub through cycles (while paused).
+        """
+        self.state_history = history
+        self._last_world = world
+        self._last_config = None
+        cp = self.control_panel
+
+        if len(history) == 0:
+            return
+
+        # The speed slider becomes a cycles/sec control for the replay.
+        cp.set_replay_speed_mode(True)
+
+        # Start paused so the user can step through (per the replay UX).
+        cp.paused = True
+        cp.btn_pause.label.set_text("Resume")
+        idx = 0
+        cp.view_index = 0
+        self._draw_replay_frame(idx)
+
+        acc = 0.0                       # fractional cycles carried between ticks
+        last_time = time.perf_counter()
+        last_draw = last_time
+
+        while True:
+            self._flush_gui()
+            if self._should_quit():
+                self._quit()
+
+            now = time.perf_counter()
+
+            # Scrubbing via Prev/Next/graph-click (only fires while paused).
+            if cp.view_changed:
+                idx = max(0, min(cp.view_index, history.latest_index))
+                cp.view_index = idx
+                cp.view_changed = False
+                self._draw_replay_frame(idx)
+                acc, last_time, last_draw = 0.0, now, now
+
+            elif not cp.paused:
+                # Advance by cycles/sec * elapsed. Cycle stepping is decoupled
+                # from drawing: at high speeds we jump many cycles per frame but
+                # still redraw only ~30 fps, so fast replays stay smooth.
+                acc += cp.replay_cps * (now - last_time)
+                last_time = now
+                if acc >= 1.0:
+                    step = int(acc)
+                    acc -= step
+                    idx = min(history.latest_index, idx + step)
+                    cp.view_index = idx
+                    if idx >= history.latest_index:
+                        self._draw_replay_frame(idx)
+                        cp.paused = True            # reached the end → pause
+                        cp.btn_pause.label.set_text("Resume")
+                        self.fig.canvas.draw_idle()
+                    elif (now - last_draw) >= self._min_frame_interval:
+                        self._draw_replay_frame(idx)
+                        last_draw = now
+            else:
+                # Paused: keep the clock current so resuming doesn't jump ahead.
+                acc, last_time = 0.0, now
+
+            time.sleep(0.005)
+
+    def _draw_replay_frame(self, idx: int) -> None:
+        hist = self.state_history
+        hist.restore_world_only(self._last_world, idx)
+        self._draw(self._last_world, self._merge_config(self._last_config))
+        cycle = hist.cycle_at(idx)
+        latest = hist.cycle_at(hist.latest_index)
+        tag = "[paused]" if self.control_panel.paused else "[playing]"
+        self.control_panel.set_label(f"Replay — Cycle {cycle} / {latest}  {tag}")
+        self.control_panel.update_graph(hist, idx)
+        self._flush_gui()
 
     # ------------------------------------------------------------------
     # Pause / browse logic
     # ------------------------------------------------------------------
 
     def _should_quit(self) -> bool:
-        """
-        True if either window was closed. The WM_DELETE_WINDOW hook set up in
-        the control panel sets cp.quit synchronously; the fignum_exists polling
-        below is a backend-agnostic fallback.
-        """
+        """True if the window was closed."""
         cp = self.control_panel
         if cp.quit:
-            return True
-        if cp.fig is not None and not plt.fignum_exists(cp.fig.number):
-            cp.quit = True
             return True
         if self.fig is not None and not plt.fignum_exists(self.fig.number):
             cp.quit = True
@@ -179,7 +282,15 @@ class GridWorldRenderer:
     def _wait_if_paused(self):
         cp = self.control_panel
         if not cp.paused:
+            self._step_target_cycle = None
             return
+
+        # Single-cycle step in progress: don't block until the target cycle is
+        # reached, so the sim advances exactly one cycle then re-pauses below.
+        if self._step_target_cycle is not None:
+            if getattr(self._last_world, "cycle", 0) < self._step_target_cycle:
+                return
+            self._step_target_cycle = None
 
         # Back up current world state so we can undo display-only changes
         # if the user browses but then resumes from "latest".
@@ -190,6 +301,13 @@ class GridWorldRenderer:
             cp.view_index = self.state_history.latest_index
             self._update_pause_label(cp.view_index)
             self.control_panel.update_graph(self.state_history, cp.view_index)
+
+        # Make sure the current frame is on screen when we pause — a fast single
+        # step (or the very first paused frame) may have skipped render()'s
+        # throttled draw.
+        if self._last_world is not None:
+            self._draw(self._last_world, self._merge_config(self._last_config))
+            self._flush_gui()
 
         browsed = False
 
@@ -203,6 +321,17 @@ class GridWorldRenderer:
 
             if self._should_quit():
                 self._quit()
+
+            # Step request (Next at the latest cycle): leave the pause loop, run
+            # exactly one more cycle, then pause again (handled at the top on the
+            # next call). Step from the real latest state, not a browsed frame.
+            if cp.step_request:
+                cp.step_request = False
+                self._step_target_cycle = getattr(self._last_world, "cycle", 0) + 1
+                if browsed and world_backup is not None:
+                    self._apply_world_backup(self._last_world, world_backup)
+                self._last_graph_len = -1
+                return
 
             if not cp.view_changed:
                 continue
@@ -275,7 +404,7 @@ class GridWorldRenderer:
     # ------------------------------------------------------------------
 
     def _draw(self, world: GridWorld, merged_config: dict) -> None:
-        """Draw one frame into self.fig / self.ax (no plt.pause call)."""
+        """Draw one frame into self.ax (no plt.pause call)."""
         grid = self._build_grid(world)
 
         cmap = ListedColormap([
@@ -285,13 +414,6 @@ class GridWorldRenderer:
             merged_config["colors"]["collector"],
             merged_config["colors"]["cutter"],
         ])
-
-        if self.fig is None:
-            self.fig, self.ax = plt.subplots(figsize=merged_config["figure_size"])
-            self.fig.canvas.mpl_connect(
-                "close_event", lambda e: self.control_panel._on_close()
-            )
-            _bind_window_close(self.fig, self.control_panel._on_close)
 
         self.ax.clear()
         self.ax.imshow(grid, cmap=cmap, vmin=0, vmax=4)

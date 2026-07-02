@@ -19,7 +19,11 @@ class GridWorld:
 
         self.positions = {}
         self.trees = {}
-        
+
+        # Current cycle, mirrored from the env (set here so it exists before the
+        # first global step — e.g. when the run starts paused on cycle 0).
+        self.cycle = 0
+
         # Track alive agents and their ages for death mechanics
         self.alive_agents = set()
         self.agent_ages = {}
@@ -55,7 +59,8 @@ class GridWorld:
         # Initialize resource counts
         self.wood = 0
         self.fruits = 0
-        
+        self.cycle = 0
+
         # Initialize agent tracking
         self.alive_agents = set(agents)
         self.agent_ages = {agent: 0 for agent in agents}
@@ -110,12 +115,12 @@ class GridWorld:
 
         # Cutter: cut down the entire tree
         if "cutter" in agent:
-            fruit_count = self.trees[tree_pos]
             del self.trees[tree_pos]
+            # Fixed wood yield per tree, set in config (fallback to 1 if no config)
+            wood_gained = self.config.wood_per_tree if self.config else 1
             if resource_manager:
-                # Add wood equal to the number of fruits the tree had
-                resource_manager.add_wood(fruit_count)
-            return {"type": "cut", "value": fruit_count}
+                resource_manager.add_wood(wood_gained)
+            return {"type": "cut", "value": wood_gained}
 
         return {"type": "none"}
 

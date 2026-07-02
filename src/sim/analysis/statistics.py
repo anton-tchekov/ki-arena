@@ -34,6 +34,38 @@ class SimulationStats:
         collectors = [a for a in alive if "collector" in a]
         cutters = [a for a in alive if "cutter" in a]
 
+        cycles = max(1, env.cycle)  # guard against divide-by-zero on empty runs
+
+        # Sustainable population: average head-count across all cycles, so it is
+        # comparable between runs of different length (unlike peak/final counts).
+        sustainable_pop = getattr(env, "stats_population_sum", 0) / cycles
+
+        # Average age of the population, meaned over all cycles of the run.
+        avg_pop_age = getattr(env, "stats_age_sum", 0) / cycles
+
+        # Deaths split by cause.
+        deaths = getattr(env, "stats_deaths_by_cause", {})
+        d_age = deaths.get("old age", 0)
+        d_fruit = deaths.get("starvation_fruit", 0)
+        d_wood = deaths.get("starvation_wood", 0)
+
+        # Everyone who ever existed (possible_agents keeps spawned agents even
+        # after they die), split by role — the run's full demographic make-up.
+        ever = list(getattr(env, "possible_agents", alive))
+        ever_collectors = sum(1 for a in ever if "collector" in a)
+        ever_cutters = sum(1 for a in ever if "cutter" in a)
+
+        # Demographic metric: collector-to-cutter ratio of everyone who lived,
+        # plus vital rates (births = spawns, deaths) per cycle = turnover.
+        if ever_cutters > 0:
+            ratio = f"{ever_collectors / ever_cutters:.2f} : 1"
+        else:
+            ratio = f"{ever_collectors} : 0"
+        births = getattr(env, "stats_agents_spawned", 0)
+        died = getattr(env, "stats_agents_died", 0)
+        births_per = births / cycles
+        deaths_per = died / cycles
+
         lines = [
             "================ Simulation Summary ================",
             f" Cycles survived            : {env.cycle}",
@@ -54,6 +86,19 @@ class SimulationStats:
             f"   Survived to end          : {len(alive)} "
             f"({len(collectors)} collectors, {len(cutters)} cutters)",
             f"   Peak population          : {getattr(env, 'stats_peak_population', len(alive))}",
+            f"   Sustainable (avg/cycle)  : {f(round(sustainable_pop, 2))}",
+            f"   Average age (over run)   : {f(round(avg_pop_age, 2))}",
+            "",
+            " Deaths by cause:",
+            f"   Old age                  : {d_age}",
+            f"   Starvation (no fruit)    : {d_fruit}",
+            f"   Starvation (no wood)     : {d_wood}",
+            "",
+            " Demographics (everyone who ever lived):",
+            f"   Collectors               : {ever_collectors}",
+            f"   Cutters                  : {ever_cutters}",
+            f"   Collector : Cutter ratio : {ratio}",
+            f"   Births / Deaths per cycle: {births_per:.2f} / {deaths_per:.2f}",
             "",
             " Agent lifespans (cycles):",
             f"   Average                  : {f(avg_life)}",

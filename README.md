@@ -23,25 +23,48 @@ Der gesamte Code liegt unter `src/sim/`, Einstiegspunkt ist `main.py`.
 
 ### Projekt starten
 
-Richtiges Verzeichnis betreten:
+Abhängigkeiten installieren:
+```
+pip install -r requirements.txt
+```
+
+Richtiges Verzeichnis betreten und ausführen:
 ```
 cd src/sim
+python main.py
 ```
 
-Gegebenenfalls Abhängigkeiten installieren:
-```
-pip install pettingzoo
-```
-
-Wenn im code eine LLM genutzt wird, dann muss Model mit Ollama im Hintergrund laufen:
+Standardmäßig laufen Regel-Agenten (keine API/kein Ollama nötig). Wenn im Code
+LLM-Agenten genutzt werden, muss ein Modell mit Ollama im Hintergrund laufen:
 ```
 ollama run ministral-3:3b
 ```
+Für die Mistral-API stattdessen `MISTRAL_API_KEY` als Umgebungsvariable setzen.
 
-Ausführen:
-```
-python main.py
-```
+### Replays
+
+Jeder Lauf wird nach `src/sim/saves/run-NNN.bin` geschrieben (gzip-komprimiert, die
+verwendete Konfiguration ist mitgespeichert). Beim Start zeigt das Programm rechts
+immer ein Menü: „New live run“ plus die Liste der gespeicherten Läufe (oder ein
+Hinweis, wenn es noch keine gibt).
+
+- Ein Replay anklicken spielt den Lauf ab (Pause/Resume, Prev/Next oder Klick in den
+  Graph zum Springen). Der Speed-Regler wird im Replay zu „Cycles/s“ und steuert das
+  Abspieltempo (bis 240 Zyklen/s).
+- „New live run“ startet eine neue Simulation, und zwar pausiert. Mit Resume läuft sie
+  durch, mit Next (im pausierten Zustand) geht sie Zyklus für Zyklus weiter.
+
+### Dokumentation
+
+- `docs/projektdokumentation.md` – Gesamtdokumentation (Motivation, Architektur, Design, Evaluation, Limitationen)
+- `docs/experiment.md` – Hypothese, Versuchsaufbau und Ergebnisse
+- `docs/metriken.md` – verwendete Metriken
+- `docs/labnotebook.md` – Beobachtungen aus Durchläufen
+- `docs/edgecases.md` – Edge Cases und Fehlerbehandlung
+- `docs/reflexion.md` – Reflexion
+- `docs/demo.md` – Ablauf der Live-Demo
+- `docs/slides.md` – Präsentationsfolien
+- `docs/transparenz.md` – Hinweis zur Nutzung von Coding-Assistenten
 
 ## Projektbeschreibung
 

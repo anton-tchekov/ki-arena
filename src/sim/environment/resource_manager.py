@@ -69,12 +69,12 @@ class ResourceManager:
     def should_spawn_agent(self):
         """
         Check if resources have reached the threshold for spawning a new agent.
-        
+
         Returns:
-            bool: True if wood OR fruits >= spawn_threshold
+            bool: True if wood AND fruits >= spawn_threshold
         """
         threshold = self.config.spawn_threshold
-        return self.wood >= threshold or self.fruits >= threshold
+        return self.wood >= threshold and self.fruits >= threshold
     
     def step(self):
         """Increment the cycle counter"""

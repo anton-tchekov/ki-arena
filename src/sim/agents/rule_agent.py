@@ -3,7 +3,7 @@ from environment.actions import Action
 import random
 
 # A collector ignores trees with fewer fruit than this and seeks a richer one.
-MIN_FRUIT_TO_COLLECT = 10
+MIN_FRUIT_TO_COLLECT = 1
 
 
 def _adjacent_tree(pos, trees):
@@ -95,12 +95,22 @@ class GreedyCutter(BaseAgent):
     A simple cutter agent that moves toward the nearest tree that no other agent
     is closer to. When adjacent to a tree, it INTERACTs to cut it down.
     """
+
+    # Conservation rule: stop cutting once the forest is down to this many trees,
+    # so it can regrow. 0 = off (the original greedy behaviour). Wired from
+    # config.cutter_forest_reserve in main.py.
+    forest_reserve = 0
+
     def act(self, obs, info) -> Action:
         x = obs['x']
         y = obs['y']
         trees = obs['trees']
 
         if not trees:
+            return random.choice(list(Action))
+
+        # Leave the last `forest_reserve` trees standing so the forest recovers.
+        if len(trees) <= self.forest_reserve:
             return random.choice(list(Action))
 
         others = [(n, p) for n, p in obs.get('agents', {}).items() if n != self.name]

@@ -45,13 +45,13 @@
   - [x] Wo liegen Memory, Planning, Action im Vier-Schichten-Modell?
   - [x] Wer trifft welche Entscheidungen – und warum dort?
 - [x] Minimaler End-to-End-Durchlauf implementiert (Funktion vor Eleganz)
-- [ ] Erste Stolpersteine festgehalten (unklare Doku, Improvisationen, getroffene Annahmen)
+- [x] Erste Stolpersteine festgehalten (unklare Doku, Improvisationen, getroffene Annahmen)
 
 **Pflicht-Deliverable Termin 2**
 
 - [x] Architekturdokument (1–2 Seiten) im Repository
 - [x] Lauffähiger Prototyp im Repository **mit Anleitung zum Starten**
-- [ ] Kurze Liste offener Fragen für die nächste Sitzung
+- [x] Kurze Liste offener Fragen für die nächste Sitzung
 
 ---
 
@@ -60,14 +60,14 @@
 **Ziel:** Das System tut, was es tun soll – zumindest im Standardfall.
 
 - [x] Hauptlogik implementiert – projektspezifisch:
-  - [ ] **Projekt B:** Spielmechanik + mind. zwei verschiedene Agenten-Typen, die gegeneinander spielen können
-- [ ] Mehrere End-to-End-Durchläufe durchgeführt und protokolliert (Varianz beobachtet)
-- [ ] Auffälliges/unerwartetes Systemverhalten notiert
+- [x] **Projekt B:** Spielmechanik + mind. zwei verschiedene Agenten-Typen, die gegeneinander spielen können
+- [x] Mehrere End-to-End-Durchläufe durchgeführt und protokolliert (Varianz beobachtet) → `docs/labnotebook.md`
+- [x] Auffälliges/unerwartetes Systemverhalten notiert → `docs/labnotebook.md`
 
 **Pflicht-Deliverable Termin 3**
 
-- [ ] Lauffähige Kernfunktionalität im Repository
-- [ ] Kurzes „Lab Notebook" (Markdown-Datei im Repo) mit den Beobachtungen aus den Durchläufen
+- [x] Lauffähige Kernfunktionalität im Repository
+- [x] Kurzes „Lab Notebook" (Markdown-Datei im Repo) mit den Beobachtungen aus den Durchläufen → `docs/labnotebook.md`
 
 ---
 
@@ -75,16 +75,16 @@
 
 **Ziel:** Das System überlebt ungewöhnliche Eingaben; das Innenleben ist nachvollziehbar.
 
-- [ ] **Observability** eingebaut: strukturiertes Logging aller LLM-Aufrufe (Prompt, Response, Latenz, Kosten)
-- [ ] Mind. **drei Edge Cases / Failure Modes** identifiziert (z. B. leere/absurde Eingabe, Tool-/API-Ausfall, Endlosschleife, falsches Output-Format)
-- [ ] Sinnvolle Fehlerbehandlung implementiert (bewusste Entscheidungen: wiederholen / abbrechen / an Nutzer melden)
-- [ ] **Nur sicherheitsrelevante Projekte (D, A, F):** erste Guardrail-Schicht (Input-Filter, Output-Filter, Tool-Whitelist, Confirmation Gate für irreversible Aktionen)
+- [x] **Observability** eingebaut: strukturiertes Logging aller LLM-Aufrufe (Prompt, Response, Latenz, Kosten) → `llm_calls.jsonl` (`analysis/llm_logger.py`)
+- [x] Mind. **drei Edge Cases / Failure Modes** identifiziert (z. B. leere/absurde Eingabe, Tool-/API-Ausfall, Endlosschleife, falsches Output-Format) → `docs/edgecases.md`
+- [x] Sinnvolle Fehlerbehandlung implementiert (bewusste Entscheidungen: wiederholen / abbrechen / an Nutzer melden)
+- [-] **Nur sicherheitsrelevante Projekte (D, A, F):** erste Guardrail-Schicht — nicht relevant für Projekt B (Ki-Arena)
 
 **Pflicht-Deliverable Termin 4**
 
-- [ ] Observability-Setup ist aktiv und produziert Logs
-- [ ] Dokumentierte Edge-Case-Liste mit je: erwartetes Verhalten / tatsächliches Verhalten / gewählter Lösungsansatz
-- [ ] Erste Version der Guardrails (sofern projekt-relevant)
+- [x] Observability-Setup ist aktiv und produziert Logs → `logfile.txt`, CSV-Logger, `llm_calls.jsonl`
+- [x] Dokumentierte Edge-Case-Liste mit je: erwartetes Verhalten / tatsächliches Verhalten / gewählter Lösungsansatz → `docs/edgecases.md`
+- [-] Erste Version der Guardrails (sofern projekt-relevant) — nicht relevant für Projekt B
 
 ---
 
@@ -92,16 +92,16 @@
 
 **Ziel:** Belegen, *wie gut* das System ist – und unter welchen Bedingungen es versagt.
 
-- [ ] Mind. **eine quantitative und eine qualitative Metrik** definiert
-- [ ] **Eine konkrete Hypothese** formuliert, die experimentell überprüft wird
-- [ ] Experiment durchgeführt mit **mind. drei Durchläufen pro Variante**; alle Ergebnisse dokumentiert (auch unerwartete)
-- [ ] Iteration durchgeführt: bei aufgedeckten Schwächen eine Komponente verbessert und erneut gemessen
+- [x] Mind. **eine quantitative und eine qualitative Metrik** definiert → `docs/metriken.md`
+- [x] **Eine konkrete Hypothese** formuliert, die experimentell überprüft wird → `docs/experiment.md`
+- [x] Experiment durchgeführt mit **mind. drei Durchläufen pro Variante**; alle Ergebnisse dokumentiert (auch unerwartete) → `docs/experiment.md`
+- [x] Iteration durchgeführt: bei aufgedeckten Schwächen eine Komponente verbessert und erneut gemessen → `docs/experiment.md` (Cutter-Schonregel + Holz-Ertrag)
 
 **Pflicht-Deliverable Termin 5**
 
-- [ ] Definition der Metriken im Repo
-- [ ] Hypothesen-Dokument mit Versuchsaufbau und Ergebnissen (Tabellen, ggf. Plots)
-- [ ] Schriftliche Reflexion: Was wurde gelernt – über das System und über Agentic AI im Allgemeinen?
+- [x] Definition der Metriken im Repo → `docs/metriken.md`
+- [x] Hypothesen-Dokument mit Versuchsaufbau und Ergebnissen (Tabellen, ggf. Plots) → `docs/experiment.md`
+- [x] Schriftliche Reflexion: Was wurde gelernt – über das System und über Agentic AI im Allgemeinen? → `docs/reflexion.md`
 
 ---
 
@@ -109,23 +109,23 @@
 
 **Ziel:** Alles für Termin 7 läuft zuverlässig; die Dokumentation ist vollständig.
 
-- [ ] Repository aufgeräumt: Code formatiert, ungenutzte Dateien entfernt, README aktualisiert, Abhängigkeiten dokumentiert (`requirements.txt` / `pyproject.toml`)
-- [ ] **Projekt-Dokumentation (4–8 Seiten)** geschrieben, mit allen Punkten:
-  - [ ] Motivation und Zielsetzung
-  - [ ] Architekturüberblick (mit Diagramm)
-  - [ ] Designentscheidungen und ihre Begründung
-  - [ ] Evaluation und Ergebnisse
-  - [ ] Limitationen und Failure Modes
-  - [ ] Was man mit mehr Zeit anders/zusätzlich machen würde
-- [ ] **Live-Demo** vorbereitet (Use Case, benötigte Daten, Notfallplan bei Fehlschlag)
-- [ ] **Präsentationsfolien (10–15 Folien)** erstellt – Struktur: Problem & Motivation / Lösungsansatz & Architektur / Demo / Evaluation & Ergebnisse / Erkenntnisse & Limitationen / Fazit
-- [ ] **Trockenlauf** in der Gruppe durchgeführt (Zeit gestoppt, alle reden mind. einmal)
+- [x] Repository aufgeräumt: Abhängigkeiten dokumentiert (`requirements.txt` + `pyproject.toml`), README aktualisiert, `.ipynb_checkpoints` ignoriert *(Code-Formatierung/weitere Aufräumarbeiten laufend)*
+- [x] **Projekt-Dokumentation (4–8 Seiten)** geschrieben → `docs/projektdokumentation.md`:
+  - [x] Motivation und Zielsetzung
+  - [x] Architekturüberblick (mit Diagramm)
+  - [x] Designentscheidungen und ihre Begründung
+  - [x] Evaluation und Ergebnisse
+  - [x] Limitationen und Failure Modes
+  - [x] Was man mit mehr Zeit anders/zusätzlich machen würde
+- [x] **Live-Demo** vorbereitet (Use Case, benötigte Daten, Notfallplan bei Fehlschlag) → `docs/demo.md`
+- [x] **Präsentationsfolien (10–15 Folien)** erstellt – Struktur: Problem & Motivation / Lösungsansatz & Architektur / Demo / Evaluation & Ergebnisse / Erkenntnisse & Limitationen / Fazit → `docs/slides.md`
+- [ ] **Trockenlauf** in der Gruppe durchgeführt (Zeit gestoppt, alle reden mind. einmal) *(Gruppenaufgabe, manuell)*
 
 **Pflicht-Deliverable Termin 6**
 
-- [ ] Aufgeräumtes Repository mit vollständiger Doku
-- [ ] Präsentationsfolien im Repo
-- [ ] Backup-Video der Demo (kurzer Bildschirmmitschnitt) für den Notfall
+- [x] Aufgeräumtes Repository mit vollständiger Doku → `docs/projektdokumentation.md` + `docs/`-Index im README
+- [x] Präsentationsfolien im Repo → `docs/slides.md`
+- [ ] Backup-Video der Demo (kurzer Bildschirmmitschnitt) für den Notfall *(muss aufgenommen werden; `sim.gif` als Zwischenlösung vorhanden)*
 
 ---
 
@@ -144,20 +144,20 @@
 
 Alle nachfolgenden Artefakte sollten am Ende im Repository vorhanden sein:
 
-- [ ] `README.md` (Projektinfo, Gruppe, Architekturskizze – aktuell gehalten)
-- [ ] Architekturdokument (1–2 Seiten)
-- [ ] Lauffähiges System mit Start-Anleitung
-- [ ] Lab Notebook (Beobachtungen aus Durchläufen)
-- [ ] Observability-Logs / Logging-Setup
-- [ ] Edge-Case-Liste mit Lösungsansätzen
-- [ ] Guardrails (sofern projekt-relevant: A, D, F)
-- [ ] Metriken-Definition
-- [ ] Hypothesen-Dokument mit Versuchsaufbau + Ergebnissen
-- [ ] Schriftliche Reflexion
-- [ ] Projekt-Dokumentation (4–8 Seiten)
-- [ ] Präsentationsfolien
-- [ ] Backup-Demo-Video
-- [ ] Transparenz-Hinweis zur Nutzung von Coding-Assistenten (wer/was beigetragen hat)
+- [x] `README.md` (Projektinfo, Gruppe, Architekturskizze – aktuell gehalten)
+- [x] Architekturdokument (1–2 Seiten) → `docs/aufgabe2.md` + Diagramm
+- [x] Lauffähiges System mit Start-Anleitung → README + `requirements.txt`
+- [x] Lab Notebook (Beobachtungen aus Durchläufen) → `docs/labnotebook.md`
+- [x] Observability-Logs / Logging-Setup → `logfile.txt`, `llm_calls.jsonl`, CSV-Logger
+- [x] Edge-Case-Liste mit Lösungsansätzen → `docs/edgecases.md`
+- [-] Guardrails (sofern projekt-relevant: A, D, F) — nicht relevant für Projekt B
+- [x] Metriken-Definition → `docs/metriken.md`
+- [x] Hypothesen-Dokument mit Versuchsaufbau + Ergebnissen → `docs/experiment.md`
+- [x] Schriftliche Reflexion → `docs/reflexion.md`
+- [x] Projekt-Dokumentation (4–8 Seiten) → `docs/projektdokumentation.md`
+- [x] Präsentationsfolien → `docs/slides.md`
+- [ ] Backup-Demo-Video *(muss aufgenommen werden; `sim.gif` als Zwischenlösung)*
+- [x] Transparenz-Hinweis zur Nutzung von Coding-Assistenten (wer/was beigetragen hat) → `docs/transparenz.md`
 
 ---
 
