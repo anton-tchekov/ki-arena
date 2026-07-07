@@ -7,6 +7,7 @@ from ollama import ChatResponse
 from ollama import Client
 
 from environment.actions import Action
+from analysis.llm_logger import LLMCallLogger
 
 class LLMManager():
 	n = 0   # Number of LLMs
@@ -28,7 +29,26 @@ class LLMManager():
 		self.use_experience = use_experience
 		self.model_str = ollama_model_str
 		os.makedirs("feedback", exist_ok=True)
-		pass
+		# Observability: log every LLM call (prompt, response, latency, tokens) to
+		# the same llm_calls.jsonl the Mistral backend uses, so a purely local
+		# Ollama run still produces the structured LLM log the docs describe.
+		log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm_calls.jsonl")
+		self.call_log = LLMCallLogger(os.path.normpath(log_path))
+
+	@staticmethod
+	def _usage_from_response(response) -> dict:
+		"""Map Ollama's token counters onto the {prompt,completion,total}_tokens
+		keys the LLMCallLogger expects."""
+		prompt_tok = getattr(response, "prompt_eval_count", None)
+		completion_tok = getattr(response, "eval_count", None)
+		total = None
+		if prompt_tok is not None or completion_tok is not None:
+			total = (prompt_tok or 0) + (completion_tok or 0)
+		return {
+			"prompt_tokens": prompt_tok,
+			"completion_tokens": completion_tok,
+			"total_tokens": total,
+		}
 
 	def set_sys_prompt(self, prompt: str):
 		self.sys_prompt = prompt
@@ -113,8 +133,13 @@ class LLMManager():
 		if self.sys_prompt:
 			messages.insert(0, {'role': 'system', 'content': self.sys_prompt})
 
+		t0 = time.time()
 		response: ChatResponse = self.client.chat(model=self.model_str, messages=messages)
-		return response.message.content or ""
+		latency = time.time() - t0
+		text = response.message.content or ""
+		self.call_log.log(llm_index, self.model_str, prompt + feedback_prompt, text,
+			latency, self._usage_from_response(response))
+		return text
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):
 		with open("feedback/feedback_for_"+str(llm_index)+".txt", "a") as f:

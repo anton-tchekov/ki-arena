@@ -1,0 +1,13 @@
+Run: greedy-0.1-collapse.bin
+Tag: 0.1-collapse  (Regel-Agenten, Seed 1, tree_spawn_rate=0.1)
+Reproduzieren: python run_headless.py --agents greedy --seeds 1 --set tree_spawn_rate=0.1 --save
+
+Ergebnis: 110 Zyklen, Peak-Pop 5, Schnitt-Pop 4.95, 0 Spawns.
+Tode -> Alter 0, Holz 5, Frucht 0 (dominant: Holzmangel).
+Ende: 5 Baeume, Holz 0, Frucht 161.
+
+Warum interessant: klassischer Oekokollaps. Bei langsamem Wald-Nachwuchs (0.1) waechst
+der Wald nicht schnell genug nach, die Cutter holzen ihn ab, das Holz-Einkommen deckt
+den Verbrauch (0.2/Agent/Zyklus) nicht mehr, alle sterben um Zyklus 110 an Holzmangel.
+Frucht ist mit 161 reichlich da, also eindeutig ein Holz- kein Frucht-Problem.
+Gegenprobe: greedy-0.1-woodfix (mehr Holz pro Baum).

@@ -2,24 +2,22 @@
 
 Sonderfälle, die wir geprüft haben. Je: was erwartet, was passiert, wie gelöst.
 
-**1. Kein Baum erreichbar / leerer Wald.**
-Erwartet: Agent hängt oder crasht. Tatsächlich: `act()` gibt eine Zufallsbewegung
-zurück, der Agent wandert. Gelöst durch Random-Fallback in den Regel-Agenten und
-einen Wander-Hinweis im LLM-Agent.
+Kein Baum erreichbar / leerer Wald: erwartet war, dass der Agent hängt oder crasht.
+Tatsächlich gibt `act()` eine Zufallsbewegung zurück, der Agent wandert einfach weiter.
+Gelöst durch Random-Fallback in den Regel-Agenten und einen Wander-Hinweis im LLM-Agent.
 
-**2. LLM antwortet im falschen Format.**
-Erwartet: Umgebung bekommt Müll. Tatsächlich: `_parse_reply` entfernt Gedankengänge,
-liest die `ACTION:`-Zeile, und wenn die fehlt, greift die vorberechnete Aktion zum
-nächsten Baum. Die Umgebung bekommt nie eine ungültige Aktion.
+LLM antwortet im falschen Format: erwartet war, dass die Umgebung Müll bekommt.
+Tatsächlich entfernt `_parse_reply` die Gedankengänge, liest die `ACTION:`-Zeile, und
+wenn die fehlt, greift die vorberechnete Aktion zum nächsten Baum. Die Umgebung
+bekommt so nie eine ungültige Aktion.
 
-**3. Population stirbt komplett aus.**
-Erwartet: Endlosschleife im `agent_selector`. Tatsächlich: alle werden terminated,
-der Selector wird leer, der Lauf endet sauber. Die Zusammenfassung wird trotzdem
-geschrieben (`finally` in `main.py`). Gelöst über den Sonderfall `len(agents) == 0`.
+Population stirbt komplett aus: erwartet war eine Endlosschleife im `agent_selector`.
+Tatsächlich werden alle terminated, der Selector wird leer, der Lauf endet sauber.
+Die Zusammenfassung wird trotzdem geschrieben (`finally` in `main.py`), gelöst über
+den Sonderfall `len(agents) == 0`.
 
-**4. Ressourcen würden negativ.**
-Erwartet: negatives Holz/Frucht. Tatsächlich: Werte bleiben bei 0, per `max(0, ...)`
-im Verbrauch und beim Abzug der Spawn-Kosten.
+Ressourcen würden negativ: erwartet waren negative Holz-/Fruchtwerte. Tatsächlich
+bleiben sie bei 0, per `max(0, ...)` im Verbrauch und beim Abzug der Spawn-Kosten.
 
-**Offen:** Fehlt der API-Key oder läuft Ollama nicht, schlägt der LLM-Aufruf ohne
-Fallback fehl. Für Regel-Läufe egal.
+**Offen:** Fehlt der Mistral-API-Key, schlägt der LLM-Aufruf ohne Fallback fehl.
+Für Regel-Läufe egal.

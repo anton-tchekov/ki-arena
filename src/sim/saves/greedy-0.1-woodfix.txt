@@ -1,0 +1,14 @@
+Run: greedy-0.1-woodfix.bin
+Tag: 0.1-woodfix  (Regel-Agenten, Seed 1, tree_spawn_rate=0.1, wood_per_tree=10)
+Reproduzieren: python run_headless.py --agents greedy --seeds 1 --set tree_spawn_rate=0.1 --set wood_per_tree=10 --save
+
+Ergebnis: 250 Zyklen, Peak-Pop 5, Schnitt-Pop 4.98, 0 Spawns.
+Tode -> Alter 5, Holz 0, Frucht 0 (dominant: Alter).
+Ende: 4 Baeume, Holz 40, Frucht 198.
+
+Warum interessant: Fix zu greedy-0.1-collapse, gleicher langsamer Wald (0.1), aber
+jeder Baum liefert 10 statt 5 Holz. Jetzt verhungert niemand mehr, die Gruppe wird
+stattdessen alt (Tod mit 250 an Alter). Zeigt, dass der Engpass der Holz-Durchsatz pro
+Faellaktion war, nicht die Zahl der Baeume - die Cutter-Schonregel half deshalb nicht,
+hier greift der richtige Hebel. Kontrast: greedy-0.1-collapse (110 Zyklen, Holzmangel)
+vs. hier (250 Zyklen, Alter).

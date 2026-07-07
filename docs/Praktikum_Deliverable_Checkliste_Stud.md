@@ -75,7 +75,7 @@
 
 **Ziel:** Das System überlebt ungewöhnliche Eingaben; das Innenleben ist nachvollziehbar.
 
-- [x] **Observability** eingebaut: strukturiertes Logging aller LLM-Aufrufe (Prompt, Response, Latenz, Kosten) → `llm_calls.jsonl` (`analysis/llm_logger.py`)
+- [x] **Observability** eingebaut: strukturiertes Logging aller LLM-Aufrufe (Prompt, Response, Latenz, Tokens/Kosten) über die Mistral-API → `llm_calls.jsonl` (`analysis/llm_logger.py`)
 - [x] Mind. **drei Edge Cases / Failure Modes** identifiziert (z. B. leere/absurde Eingabe, Tool-/API-Ausfall, Endlosschleife, falsches Output-Format) → `docs/edgecases.md`
 - [x] Sinnvolle Fehlerbehandlung implementiert (bewusste Entscheidungen: wiederholen / abbrechen / an Nutzer melden)
 - [-] **Nur sicherheitsrelevante Projekte (D, A, F):** erste Guardrail-Schicht — nicht relevant für Projekt B (Ki-Arena)
@@ -94,7 +94,7 @@
 
 - [x] Mind. **eine quantitative und eine qualitative Metrik** definiert → `docs/metriken.md`
 - [x] **Eine konkrete Hypothese** formuliert, die experimentell überprüft wird → `docs/experiment.md`
-- [x] Experiment durchgeführt mit **mind. drei Durchläufen pro Variante**; alle Ergebnisse dokumentiert (auch unerwartete) → `docs/experiment.md`
+- [x] Experiment durchgeführt mit **mind. drei Durchläufen pro Variante**; alle Ergebnisse dokumentiert (auch unerwartete) → `docs/experiment.md`; reproduzierbar über den Headless-Runner `src/sim/run_headless.py`, interessante Einstellungen in `src/sim/simulation_parameters.txt`
 - [x] Iteration durchgeführt: bei aufgedeckten Schwächen eine Komponente verbessert und erneut gemessen → `docs/experiment.md` (Cutter-Schonregel + Holz-Ertrag)
 
 **Pflicht-Deliverable Termin 5**
@@ -109,7 +109,7 @@
 
 **Ziel:** Alles für Termin 7 läuft zuverlässig; die Dokumentation ist vollständig.
 
-- [x] Repository aufgeräumt: Abhängigkeiten dokumentiert (`requirements.txt` + `pyproject.toml`), README aktualisiert, `.ipynb_checkpoints` ignoriert *(Code-Formatierung/weitere Aufräumarbeiten laufend)*
+- [x] Repository aufgeräumt: Abhängigkeiten dokumentiert (`requirements.txt` + `pyproject.toml`), README aktualisiert, `.ipynb_checkpoints` aus dem Tracking entfernt und ignoriert; Headless-Runner `src/sim/run_headless.py` als reproduzierbarer, GUI-freier Einstieg ergänzt
 - [x] **Projekt-Dokumentation (4–8 Seiten)** geschrieben → `docs/projektdokumentation.md`:
   - [x] Motivation und Zielsetzung
   - [x] Architekturüberblick (mit Diagramm)
@@ -148,7 +148,10 @@ Alle nachfolgenden Artefakte sollten am Ende im Repository vorhanden sein:
 - [x] Architekturdokument (1–2 Seiten) → `docs/aufgabe2.md` + Diagramm
 - [x] Lauffähiges System mit Start-Anleitung → README + `requirements.txt`
 - [x] Lab Notebook (Beobachtungen aus Durchläufen) → `docs/labnotebook.md`
-- [x] Observability-Logs / Logging-Setup → `logfile.txt`, `llm_calls.jsonl`, CSV-Logger
+- [x] Observability-Logs / Logging-Setup → `logfile.txt`, `llm_calls.jsonl` (Mistral-API), CSV-Logger
+- [x] Headless-Runner für reproduzierbare Läufe (Regel / RL / LLM) → `src/sim/run_headless.py`
+- [x] Interessante Parameter-Einstellungen dokumentiert → `src/sim/simulation_parameters.txt`
+- [x] Gespeicherte interessante Läufe (semantisch benannt) mit Erklärung → `src/sim/saves/*.bin` (7 kuratierte Läufe wie `greedy-0.3-boom`, `rl-collapse`, `llm-coordination`; je mit `.txt`)
 - [x] Edge-Case-Liste mit Lösungsansätzen → `docs/edgecases.md`
 - [-] Guardrails (sofern projekt-relevant: A, D, F) — nicht relevant für Projekt B
 - [x] Metriken-Definition → `docs/metriken.md`

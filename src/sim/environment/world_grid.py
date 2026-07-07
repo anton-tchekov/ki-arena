@@ -88,6 +88,17 @@ class GridWorld:
                 return (tx, ty)
         return None
 
+    def is_adjacent_to_tree(self, agent) -> bool:
+        """True if the agent is standing next to (or on) a tree. Used by the
+        shaped cutter reward to reward being close to a tree."""
+        return self.adjacent_tree(agent) is not None
+
+    def get_pos(self, agent) -> tuple:
+        """The agent's (x, y) position as a hashable tuple — used by the
+        explorer reward, which keeps a set of visited cells."""
+        pos = self.positions[agent]
+        return (int(pos[0]), int(pos[1]))
+
     def interact(self, agent, resource_manager=None):
         """
         Handle agent interaction with adjacent tree.

@@ -31,6 +31,48 @@ def _bind_window_close(fig, callback) -> None:
         pass
 
 
+def _pump_gui(fig, interval: float) -> None:
+    """
+    Process pending GUI events and wait ~interval seconds, without using
+    ``plt.pause``.
+
+    ``plt.pause`` calls the backend's ``show(block=False)`` on every
+    invocation, which on Tk re-raises/deiconifies the window each time — in a
+    blocking loop that runs 10-20x/second, that makes the window visibly pop
+    to the front and back whenever another window overlaps it. Driving the
+    event loop with ``draw_idle`` + ``flush_events`` (what ``pause`` does
+    internally besides the ``show`` call) processes clicks and redraws just
+    the same, without repeatedly re-showing the window.
+    """
+    try:
+        if fig.stale:
+            fig.canvas.draw_idle()
+        fig.canvas.flush_events()
+    except Exception:
+        pass
+    time.sleep(interval)
+
+
+def _bind_expose_redraw(fig) -> None:
+    """
+    Force a full canvas redraw when the window is uncovered.
+
+    Our render loops only request a redraw (``draw_idle``) when the simulation
+    data actually changes; while paused, or between ticks, nothing re-triggers
+    a draw at all. Tk repaints an exposed canvas region from its own
+    back-buffer, but if that buffer was never (re)drawn while the window sat
+    behind another one — e.g. covering just part of it, or a compositor
+    dropping the buffer — the newly exposed area can show stale or garbled
+    pixels until the next real draw(). Binding <Expose> forces that repaint
+    immediately. Best-effort: silently skipped on non-Tk backends.
+    """
+    try:
+        widget = fig.canvas.get_tk_widget()
+        widget.bind("<Expose>", lambda e: fig.canvas.draw())
+    except Exception:
+        pass
+
+
 class ControlPanel:
     """
     A separate matplotlib window with Pause/Resume, Rewind, and Forward buttons.
@@ -49,6 +91,7 @@ class ControlPanel:
         self.view_changed = False
         self.needs_restore = False
         self.quit = False
+        self.back_to_menu = False  # set when the user clicks "Menu"
         self.tick_delay = 0.05  # seconds the renderer waits between steps
 
         # Replay menu state: set to a file path or the string "LIVE" once chosen.
@@ -74,6 +117,8 @@ class ControlPanel:
             self.fig = plt.figure("Ki-Arena Control Panel", figsize=(5, 5.5))
             self.fig.canvas.mpl_connect("close_event", self._on_close)
             _bind_window_close(self.fig, self._on_close)
+            _bind_expose_redraw(self.fig)
+            plt.show(block=False)  # one-time: see renderer.py for why not plt.pause
         else:
             # Shared figure provided by the renderer; close events bound there.
             self.fig = fig
@@ -81,14 +126,17 @@ class ControlPanel:
         rl, rb, rw, rh = region
         self._region = region
 
-        ax_rw = self.fig.add_axes(_map_ax([0.03, 0.90, 0.18, 0.06], region))
-        ax_pp = self.fig.add_axes(_map_ax([0.26, 0.90, 0.48, 0.06], region))
-        ax_fw = self.fig.add_axes(_map_ax([0.79, 0.90, 0.18, 0.06], region))
+        ax_menu = self.fig.add_axes(_map_ax([0.03, 0.90, 0.16, 0.06], region))
+        ax_rw   = self.fig.add_axes(_map_ax([0.21, 0.90, 0.14, 0.06], region))
+        ax_pp   = self.fig.add_axes(_map_ax([0.37, 0.90, 0.26, 0.06], region))
+        ax_fw   = self.fig.add_axes(_map_ax([0.65, 0.90, 0.32, 0.06], region))
 
+        self.btn_menu    = Button(ax_menu, "☰ Menu")
         self.btn_rewind  = Button(ax_rw, "< Prev")
         self.btn_pause   = Button(ax_pp, "Pause")
         self.btn_forward = Button(ax_fw, "Next >")
 
+        self.btn_menu.on_clicked(self._on_menu)
         self.btn_rewind.on_clicked(self._on_rewind)
         self.btn_pause.on_clicked(self._toggle_pause)
         self.btn_forward.on_clicked(self._on_forward)
@@ -128,6 +176,9 @@ class ControlPanel:
 
     def _on_close(self, event=None):
         self.quit = True
+
+    def _on_menu(self, event):
+        self.back_to_menu = True
 
     def _on_speed_change(self, pos):
         pos = float(pos)
@@ -328,13 +379,14 @@ class ControlPanel:
         are hidden so the menu stands alone.
         """
         self.replay_choice = None
+        self.back_to_menu = False
         self._menu_axes = []
         self._menu_buttons = []
 
         # Hide the normal panel widgets so the menu stands alone.
         self._hidden_for_menu = [
             self.ax_graph, self.ax_graph_pop, self.ax_graph_age, self.ax_board,
-            self.btn_rewind.ax, self.btn_pause.ax, self.btn_forward.ax,
+            self.btn_menu.ax, self.btn_rewind.ax, self.btn_pause.ax, self.btn_forward.ax,
             self.slider_speed.ax,
         ]
         for ax in self._hidden_for_menu:
@@ -377,14 +429,12 @@ class ControlPanel:
         self.replay_choice = choice
 
     def wait_for_replay_choice(self) -> Optional[str]:
-        """Block until a menu button is clicked or the window is closed. Uses
-        plt.pause so the window is shown and clicks are processed. Returns the
-        choice, or None if the window was closed."""
+        """Block until a menu button is clicked or the window is closed.
+        Pumps the GUI event loop (without plt.pause — see _pump_gui) so
+        clicks are processed. Returns the choice, or None if the window was
+        closed."""
         while self.replay_choice is None and not self.quit:
-            try:
-                plt.pause(0.05)
-            except Exception:
-                time.sleep(0.05)
+            _pump_gui(self.fig, 0.05)
             if self.fig is not None and not plt.fignum_exists(self.fig.number):
                 self.quit = True
         return None if self.quit else self.replay_choice
@@ -403,6 +453,54 @@ class ControlPanel:
         # The caller decides the paused state afterwards (live and replay both
         # start paused), so this only restores the widgets.
         self.fig.canvas.draw_idle()
+
+    # ------------------------------------------------------------------
+    # Blocking Yes/No popup (e.g. "save this replay?")
+    # ------------------------------------------------------------------
+    def ask_yes_no(self, question: str, yes_label: str = "Yes", no_label: str = "No") -> bool:
+        """
+        Show a blocking Yes/No popup over the panel and return the choice.
+        Returns False (== No) if the window is closed while asking.
+        """
+        self._popup_choice = None
+        self._popup_axes = []
+        self._popup_buttons = []
+
+        ax_msg = self.fig.add_axes(_map_ax([0.06, 0.60, 0.88, 0.10], self._region))
+        ax_msg.axis("off")
+        ax_msg.text(0.5, 0.5, question, ha="center", va="center",
+                    fontsize=10, wrap=True)
+        self._popup_axes.append(ax_msg)
+
+        ax_yes = self.fig.add_axes(_map_ax([0.12, 0.50, 0.34, 0.07], self._region))
+        ax_no  = self.fig.add_axes(_map_ax([0.54, 0.50, 0.34, 0.07], self._region))
+        btn_yes = Button(ax_yes, yes_label)
+        btn_no  = Button(ax_no, no_label)
+        btn_yes.on_clicked(lambda _e: self._set_popup_choice(True))
+        btn_no.on_clicked(lambda _e: self._set_popup_choice(False))
+        self._popup_axes += [ax_yes, ax_no]
+        self._popup_buttons += [btn_yes, btn_no]
+
+        self.fig.canvas.draw_idle()
+
+        while self._popup_choice is None and not self.quit:
+            _pump_gui(self.fig, 0.05)
+            if self.fig is not None and not plt.fignum_exists(self.fig.number):
+                self.quit = True
+
+        for ax in self._popup_axes:
+            try:
+                self.fig.delaxes(ax)
+            except Exception:
+                pass
+        self._popup_axes = []
+        self._popup_buttons = []
+        self.fig.canvas.draw_idle()
+
+        return bool(self._popup_choice)
+
+    def _set_popup_choice(self, choice: bool) -> None:
+        self._popup_choice = choice
 
     # ------------------------------------------------------------------
     def set_label(self, text: str) -> None:

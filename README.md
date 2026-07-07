@@ -19,7 +19,7 @@ Der gesamte Code liegt unter `src/sim/`, Einstiegspunkt ist `main.py`.
 - **`agents/`** – Die Agententypen: regelbasiert, RL und LLM.
 - **`arena/`** – Ablaufsteuerung der Simulation (Phasen und Episoden).
 - **`analysis/`** – Auswertung und Protokollierung der Läufe.
-- **`llm/`** – Anbindung an ein lokales Sprachmodell über Ollama oder Mistral API.
+- **`llm/`** – Anbindung an ein Sprachmodell über die Mistral API.
 
 ### Projekt starten
 
@@ -34,12 +34,27 @@ cd src/sim
 python main.py
 ```
 
-Standardmäßig laufen Regel-Agenten (keine API/kein Ollama nötig). Wenn im Code
-LLM-Agenten genutzt werden, muss ein Modell mit Ollama im Hintergrund laufen:
+Standardmäßig laufen Regel-Agenten (keine API nötig). Für LLM-Agenten wird die
+Mistral-API genutzt; dazu den API-Key als Umgebungsvariable setzen:
 ```
-ollama run ministral-3:3b
+export MISTRAL_API_KEY=dein_key
 ```
-Für die Mistral-API stattdessen `MISTRAL_API_KEY` als Umgebungsvariable setzen.
+
+### Headless (ohne GUI)
+
+Für reproduzierbare Experimente und als Notfallplan für die Demo gibt es einen
+Headless-Runner ohne Fenster und ohne Eingaben:
+```
+cd src/sim
+python run_headless.py --agents greedy --seeds 1-3
+python run_headless.py --agents greedy --seeds 1-3 --set tree_spawn_rate=0.9
+python run_headless.py --agents rl --train-episodes 300 --seeds 1
+MISTRAL_API_KEY=… python run_headless.py --agents llm --llm-backend mistral --set max_cycles=600
+```
+Mit `--save` wird der Lauf als Replay in `saves/` gespeichert (plus eine `.txt`-Notiz).
+Interessante Parameter-Einstellungen sind in `src/sim/simulation_parameters.txt`
+dokumentiert, die zugehörigen Ergebnisse in `docs/labnotebook.md` und
+`docs/experiment.md`.
 
 ### Replays
 
@@ -53,6 +68,12 @@ Hinweis, wenn es noch keine gibt).
   Abspieltempo (bis 240 Zyklen/s).
 - „New live run“ startet eine neue Simulation, und zwar pausiert. Mit Resume läuft sie
   durch, mit Next (im pausierten Zustand) geht sie Zyklus für Zyklus weiter.
+
+Einige interessante Läufe sind fest im Repo abgelegt und semantisch benannt – z. B.
+`greedy-0.3-boom.bin` / `greedy-0.3-bust.bin` (Boom-oder-Bust bei `tree_spawn_rate=0.3`),
+`greedy-0.1-collapse.bin` / `greedy-0.1-woodfix.bin`, `rl-collapse.bin` und
+`llm-coordination.bin`. Neben jedem liegt eine gleichnamige `.txt`, die erklärt, warum
+der Lauf interessant ist. Diese lassen sich direkt im Replay-Menü abspielen.
 
 ### Dokumentation
 

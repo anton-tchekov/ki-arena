@@ -47,19 +47,25 @@ class ReplaySnapshot:
         self.rm_fruits = record["fruits"]
 
 
-# Saved runs are gzip-compressed JSON (.bin). Legacy plain-JSON .txt files are
-# still listed and loaded for backward compatibility.
+# Saved runs are gzip-compressed JSON (.bin). Auto-generated live runs are numbered
+# ``run-NNN.bin``; curated "interesting" runs get semantic names like
+# ``greedy-0.3-boom.bin``. _SAVE_RE matches only the numbered form (used to pick the
+# next number); _LEGACY_TXT_RE matches old plain-JSON ``run-NNN.txt`` saves — NOT the
+# ``.txt`` explanation notes that sit next to curated runs.
 _SAVE_RE = re.compile(r"run-(\d+)\.(bin|txt)$")
+_LEGACY_TXT_RE = re.compile(r"run-\d+\.txt$")
 
 
 def list_saves(saves_dir: str) -> list[str]:
-    """Saved replay files (newest first), matching ``run-NNN.bin`` / ``.txt``."""
+    """Saved replay files (newest first). Lists every ``.bin`` replay — both the
+    auto-numbered ``run-NNN.bin`` and the curated semantic names — plus legacy
+    plain-JSON ``run-NNN.txt`` saves. The ``.txt`` explanation notes are skipped."""
     if not os.path.isdir(saves_dir):
         return []
     files = [
         os.path.join(saves_dir, f)
         for f in os.listdir(saves_dir)
-        if _SAVE_RE.match(f)
+        if f.endswith(".bin") or _LEGACY_TXT_RE.match(f)
     ]
     return sorted(files, reverse=True)
 

@@ -6,12 +6,19 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 from environment.world_grid import GridWorld
-from environment.control_panel import ControlPanel, _bind_window_close, _map_ax
+from environment.control_panel import ControlPanel, _bind_window_close, _bind_expose_redraw, _map_ax
 
 
 def _fmt(x):
     """Show floats with 2 decimals; leave ints (and everything else) untouched."""
     return f"{x:.2f}" if isinstance(x, float) else str(x)
+
+
+class BackToMenu(Exception):
+    """Raised when the user clicks the control panel's Menu button, to unwind
+    the current live run or replay back to main()'s replay menu without
+    closing the window."""
+    pass
 
 
 class GridWorldRenderer:
@@ -33,6 +40,11 @@ class GridWorldRenderer:
         # This avoids two separate OS windows which cannot be positioned on Wayland/GTK4.
         self.fig = plt.figure("Ki-Arena", figsize=(11, 6))
         _bind_window_close(self.fig, self._on_close_shared)
+        _bind_expose_redraw(self.fig)
+        # One-time: actually realizes/shows the window. Every render loop
+        # since only calls draw_idle()/flush_events() (not plt.pause) to avoid
+        # re-raising the window on every frame, so this is the only show().
+        plt.show(block=False)
 
         # Grid axes occupy the left portion of the combined figure
         self.ax = self.fig.add_axes([0.02, 0.06, 0.525, 0.87])
@@ -81,10 +93,16 @@ class GridWorldRenderer:
         if draw_due:
             self._draw(world, self._merge_config(config))
             self._refresh_panel()          # label + graph, gated to once per cycle
+            # Not plt.pause: it calls the backend's show(block=False) on every
+            # invocation, which on Tk re-raises/deiconifies the window each
+            # time — at ~30 calls/sec that makes the window visibly pop to the
+            # front whenever another window overlaps it. draw + flush_events
+            # processes the redraw and pending clicks without that side effect.
             try:
-                plt.pause(0.001)
+                self.fig.canvas.draw_idle()
+                self.fig.canvas.flush_events()
             except Exception:
-                plt.draw()
+                pass
             # Record before the delay below, so the delay counts toward the next
             # frame's interval (keeps moderate delays drawing every step).
             self._last_draw_time = time.perf_counter()
@@ -99,11 +117,13 @@ class GridWorldRenderer:
 
         if self._should_quit():
             self._quit()
+        self._check_back_to_menu()
 
         self._wait_if_paused()
 
         if self._should_quit():
             self._quit()
+        self._check_back_to_menu()
 
     def _status_text(self, cycle) -> str:
         """Cycle plus live demographics (death causes + sustainable population),
@@ -183,6 +203,18 @@ class GridWorldRenderer:
         if self.fig:
             plt.close(self.fig)
 
+    def clear_grid(self) -> None:
+        """Blank the grid pane (e.g. while the replay menu is showing) so a
+        finished run's last frame doesn't linger on screen."""
+        self.ax.clear()
+        self.ax.set_facecolor(self.default_config["colors"]["empty"])
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        self.ax.set_title("")
+        self._last_world = None
+        self._last_graph_len = -1
+        self.fig.canvas.draw_idle()
+
     # ------------------------------------------------------------------
     # Replay playback (no env stepping — just displays saved snapshots)
     # ------------------------------------------------------------------
@@ -218,6 +250,7 @@ class GridWorldRenderer:
             self._flush_gui()
             if self._should_quit():
                 self._quit()
+            self._check_back_to_menu()
 
             now = time.perf_counter()
 
@@ -279,6 +312,13 @@ class GridWorldRenderer:
             return True
         return False
 
+    def _check_back_to_menu(self) -> None:
+        """Raise BackToMenu once if the user clicked the panel's Menu button."""
+        cp = self.control_panel
+        if cp.back_to_menu:
+            cp.back_to_menu = False
+            raise BackToMenu()
+
     def _wait_if_paused(self):
         cp = self.control_panel
         if not cp.paused:
@@ -321,6 +361,7 @@ class GridWorldRenderer:
 
             if self._should_quit():
                 self._quit()
+            self._check_back_to_menu()
 
             # Step request (Next at the latest cycle): leave the pause loop, run
             # exactly one more cycle, then pause again (handled at the top on the

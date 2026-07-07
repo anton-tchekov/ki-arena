@@ -21,4 +21,6 @@ Womit wir einen Lauf bewerten. Die Zahlen stehen am Ende in der Konsole und im
 - LLM-Koordination: Reden die Agenten übers Blackboard sinnvoll, oder rennen alle auf
   denselben Baum? Sieht man am Blackboard und an den Plan-Zeilen im Logfile.
 
-LLM-Aufrufe (Prompt, Antwort, Latenz, Tokens) landen in `llm_calls.jsonl`.
+LLM-Aufrufe (Prompt, Antwort, Latenz, Tokens) landen über die Mistral-API in
+`llm_calls.jsonl` (`analysis/llm_logger.py`). Ein Beispiel-Lauf und die Beobachtungen
+dazu stehen in `docs/labnotebook.md`.

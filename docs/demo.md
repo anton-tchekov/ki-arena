@@ -2,9 +2,9 @@
 
 ## Use Case
 
-Wir zeigen einen Lauf: Collector sammeln Früchte, Cutter fällen Bäume, beide brauchen
-die Ressourcen. Man sieht live, wie sich Population und Ressourcen entwickeln und woran
-die Gruppe stirbt. Dauer ca. 3–4 Minuten.
+- Live-Lauf: Collector sammeln Früchte, Cutter fällen Bäume, beide brauchen die Ressourcen
+- man sieht live Population/Ressourcen-Entwicklung und Todesursache
+- Dauer ca. 3–4 Minuten
 
 Ablauf:
 
@@ -18,11 +18,14 @@ Ablauf:
 ## Setup
 
 `pip install -r requirements.txt`. Der Standard-Lauf nutzt Regel-Agenten, also kein
-API-Key und kein Ollama nötig. Keine externen Daten, die Welt ist zufällig.
+API-Key nötig. Keine externen Daten, die Welt ist zufällig.
 
 ## Notfallplan
 
-- GUI macht Probleme: headless laufen lassen und die Zahlen aus `logfile.txt` vorlesen.
+- GUI macht Probleme: headless laufen lassen und die Zahlen vorlesen –
+  `cd src/sim && python run_headless.py --agents greedy --seeds 1` (oder ein
+  gespeichertes Replay im GUI abspielen, z. B. `saves/greedy-0.3-boom.bin`).
 - LLM/API fällt aus: auf den Regel-Lauf umschalten (Default), der braucht nichts Externes.
-- Lauf hängt: kleinere `max_cycles` setzen oder das Backup-Video `sim.gif` zeigen.
+- Lauf hängt: kleinere `max_cycles` setzen (`--set max_cycles=200`) oder das
+  Backup-Video `sim.gif` zeigen.
 - Komplett-Ausfall: Video zeigen und an den Folien durch die Ergebnisse gehen.

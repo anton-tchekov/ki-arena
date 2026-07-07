@@ -18,12 +18,16 @@ from environment.actions import Action
 class GridForestEnv(AECEnv):
     metadata = {"name": "grid_forest_v1"}
 
-    def __init__(self, config: EnvConfig, agents: dict[str, BaseAgent]|None = None):
+    def __init__(self, config: EnvConfig, agents: dict[str, BaseAgent]|None = None,
+                 renderer: GridWorldRenderer|None = None):
         super().__init__()
 
         self.config = config
         self.world = GridWorld(config.size, config.n_trees, config)
-        self.renderer = GridWorldRenderer()
+        # Reuse an existing renderer/window when given (e.g. rebuilding the env
+        # for a full reset without opening a second GUI window); otherwise open
+        # a fresh one.
+        self.renderer = renderer if renderer is not None else GridWorldRenderer()
 
         # Optional run logger (set by main); guarded everywhere so logging is optional.
         self.run_logger = None

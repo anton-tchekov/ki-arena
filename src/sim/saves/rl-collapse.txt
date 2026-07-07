@@ -1,0 +1,17 @@
+Run: rl-collapse.bin
+Tag: rl-collapse  (RL / Q-Learning, Seed 1, 300 Trainings-Episoden, Standard-Konfig)
+Reproduzieren: python run_headless.py --agents rl --train-episodes 300 --seeds 1 --save
+
+Ergebnis: 60 Zyklen, Peak-Pop 5, Schnitt-Pop 4.92, 0 Spawns.
+Tode -> Alter 0, Holz 5, Frucht 0 (dominant: Holzmangel).
+Ende: 20 Baeume, Holz 0, Frucht 45.
+
+Warum interessant: direkter RL-vs-Regel-Vergleich bei Standard-Konfig. Die
+trainierten RL-Agenten (tabellarisches Q-Learning, 300 Episoden, epsilon bis ~0.04)
+ueberleben nur 60 Zyklen, die Regel-Agenten schaffen auf demselben Seed 461. Der Grund
+steht in der Zahl "Ende: 20 Baeume" - der Wald ist am Maximum, die RL-Cutter faellen
+praktisch nie. Sie lernen das Navigieren-zum-Baum-und-INTERACT im grossen, grob
+diskretisierten Zustandsraum nicht zuverlaessig, kein Holz kommt rein, der Startvorrat
+(50) laeuft leer, alle verhungern an Holzmangel. Zeigt, dass ein unter-trainierter
+RL-Agent hier schlechter ist als eine simple Regel - und dass mehr Trainings-Episoden
+(100 auf 400) daran wenig aendern.

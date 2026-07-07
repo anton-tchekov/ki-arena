@@ -43,7 +43,7 @@ Gruppe HAD · Anton Tchekov, Daniil Khoma, Haron Nazari · HAW Hamburg
 - **agents/** – Regel-, RL-, LLM-Agent + Blackboard
 - **arena/** – Episoden-Ablauf (Training / Ausführung)
 - **analysis/** – Statistik, Logfile, LLM-Log
-- **llm/** – Ollama / Mistral-Anbindung
+- **llm/** – Mistral-API-Anbindung
 - Alles über **PettingZoo (AEC)**, Stellschrauben in **config.py**
 
 ---
@@ -79,14 +79,15 @@ Gruppe HAD · Anton Tchekov, Daniil Khoma, Haron Nazari · HAW Hamburg
 
 ## Evaluation – Ergebnis
 
-| tree_spawn_rate | Zyklen | Schnitt-Pop | Todesursache |
-|-----------------|--------|-------------|--------------|
-| 0.1             | 105    | 5.0         | Holzmangel   |
-| 0.3             | 200    | 5.0         | Alter        |
-| 0.5             | 467    | 6.0         | Alter        |
-| 0.9             | 688    | 7.3         | Alter        |
+| tree_spawn_rate | Zyklen | Schnitt-Pop | Todesursache    |
+|-----------------|--------|-------------|-----------------|
+| 0.1             | 105    | 5.0         | Holzmangel      |
+| 0.3             | ~784*  | 4.7         | Alter (bimodal) |
+| 0.5             | 527    | 6.8         | Alter           |
+| 0.9             | 619    | 7.7         | Alter           |
 
-→ Schnellerer Wald = längeres Überleben. Hypothese bestätigt.
+→ Ränder klar: 0.1 kollabiert, ab 0.3 Tod durch Alter.
+\*0.3 = Boom-oder-Bust (250 bis 1990 Zyklen, nur der Seed entscheidet).
 
 ---
 
@@ -103,7 +104,10 @@ Gruppe HAD · Anton Tchekov, Daniil Khoma, Haron Nazari · HAW Hamburg
 
 ## Erkenntnisse & Limitationen
 
-- Überraschung: bei Standard-Werten stirbt die Gruppe an **Alter**, nicht Hunger
+- Überraschung 1: bei Standard-Werten stirbt die Gruppe an **Alter**, nicht Hunger
+- Überraschung 2: bei 0.3 **Boom-oder-Bust** – gleiche Konfig, gegensätzliches
+  Schicksal, nur der Seed entscheidet (Reproduktion mal holz-, mal frucht-limitiert)
+- **RL** schlägt die simple Regel nicht (60 vs. 461 Zyklen)
 - Beobachtbarkeit früh einbauen – ohne Logs hätten wir das nie gesehen
 - Limits: volle Sicht (kein POMDP), kein API-Fallback, sehr config-empfindlich
 - Edge Cases dokumentiert und abgefangen

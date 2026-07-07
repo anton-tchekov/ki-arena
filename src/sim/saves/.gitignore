@@ -1,0 +1,20 @@
+# Ad-hoc replay runs (auto-numbered run-NNN.bin) are throwaway, so ignore
+# everything in this folder by default...
+*
+
+# ...but keep this file, the curated interesting runs, and their .txt notes.
+!.gitignore
+!greedy-baseline.bin
+!greedy-baseline.txt
+!greedy-0.3-boom.bin
+!greedy-0.3-boom.txt
+!greedy-0.3-bust.bin
+!greedy-0.3-bust.txt
+!greedy-0.1-collapse.bin
+!greedy-0.1-collapse.txt
+!greedy-0.1-woodfix.bin
+!greedy-0.1-woodfix.txt
+!rl-collapse.bin
+!rl-collapse.txt
+!llm-coordination.bin
+!llm-coordination.txt

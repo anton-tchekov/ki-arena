@@ -1,0 +1,16 @@
+Run: greedy-0.3-bust.bin
+Tag: 0.3-bust  (Regel-Agenten, Seed 3, tree_spawn_rate=0.3)
+Reproduzieren: python run_headless.py --agents greedy --seeds 3 --set tree_spawn_rate=0.3 --save
+
+Ergebnis: 250 Zyklen, Peak-Pop 5, Schnitt-Pop 4.98, 0 Spawns.
+Tode -> Alter 5, Holz 0, Frucht 0 (dominant: Alter).
+Ende: 19 Baeume, Holz 55, Frucht 372.
+
+Warum interessant: der Bust-Ast desselben 0.3-Regimes wie greedy-0.3-boom. Die Gruppe
+stirbt bei exakt Zyklus 250 - alle 5 Gruender-Agenten erreichen gleichzeitig max_age
+und sterben im selben Moment an Alter. Der eigentliche Grund ist die Fortpflanzung: es
+spawnt nie ein neuer Agent. Kurios: am Ende liegen 372 Frucht herum, aber das Holz
+bleibt bei 55 und kommt nie ueber die Spawn-Schwelle (100 fuer beide Ressourcen) -
+Reproduktion ist hier holz-limitiert, obwohl Frucht im Ueberfluss da ist. Perfekter
+Kontrast zu greedy-0.3-boom (dort das Gegenteil) und unser deutlichstes Beispiel fuer
+die Seed-Empfindlichkeit des Systems.
