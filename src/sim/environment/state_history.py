@@ -6,6 +6,8 @@ import re
 
 from pettingzoo.utils.agent_selector import agent_selector as make_selector
 
+from agents.blackboard import shared_blackboard
+
 
 def _config_to_dict(config) -> dict:
     """
@@ -45,6 +47,7 @@ class ReplaySnapshot:
         self.world_fruits = record["fruits"]
         self.rm_wood = record["wood"]
         self.rm_fruits = record["fruits"]
+        self.blackboard = dict(record.get("blackboard", {}))
 
 
 # Saved runs are gzip-compressed JSON (.bin). Auto-generated live runs are numbered
@@ -99,6 +102,9 @@ class StateSnapshot:
         self.rm_wood = env.resource_manager.wood
         self.rm_fruits = env.resource_manager.fruits
         self.rm_cycle = env.resource_manager.cycle
+
+        # Blackboard notes pinned by LLM agents this cycle (for replay display).
+        self.blackboard = dict(shared_blackboard.read())
 
         # Env / PettingZoo state
         self.agents = list(env.agents)
@@ -176,6 +182,11 @@ class StateHistory:
         world.cycle = snap.cycle
 
     # ------------------------------------------------------------------
+    def blackboard_at(self, index: int) -> dict[str, str]:
+        """Blackboard notes pinned as of this snapshot (for replay display)."""
+        return dict(self._snapshots[index].blackboard)
+
+    # ------------------------------------------------------------------
     def truncate_after(self, index: int) -> None:
         """Discard all snapshots after index (used when branching into the past)."""
         self._snapshots = self._snapshots[:index + 1]
@@ -235,6 +246,7 @@ class StateHistory:
                 "agent_ages": {a: int(v) for a, v in s.agent_ages.items()},
                 "wood": float(s.rm_wood),
                 "fruits": float(s.rm_fruits),
+                "blackboard": dict(s.blackboard),
             })
         payload = {
             "version": 2,

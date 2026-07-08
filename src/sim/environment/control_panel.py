@@ -126,20 +126,28 @@ class ControlPanel:
         rl, rb, rw, rh = region
         self._region = region
 
-        ax_menu = self.fig.add_axes(_map_ax([0.03, 0.90, 0.16, 0.06], region))
-        ax_rw   = self.fig.add_axes(_map_ax([0.21, 0.90, 0.14, 0.06], region))
-        ax_pp   = self.fig.add_axes(_map_ax([0.37, 0.90, 0.26, 0.06], region))
-        ax_fw   = self.fig.add_axes(_map_ax([0.65, 0.90, 0.32, 0.06], region))
+        ax_menu = self.fig.add_axes(_map_ax([0.03, 0.90, 0.14, 0.06], region))
+        ax_rw   = self.fig.add_axes(_map_ax([0.18, 0.90, 0.12, 0.06], region))
+        ax_pp   = self.fig.add_axes(_map_ax([0.31, 0.90, 0.20, 0.06], region))
+        ax_fw   = self.fig.add_axes(_map_ax([0.52, 0.90, 0.20, 0.06], region))
+        ax_save = self.fig.add_axes(_map_ax([0.73, 0.90, 0.24, 0.06], region))
 
         self.btn_menu    = Button(ax_menu, "☰ Menu")
         self.btn_rewind  = Button(ax_rw, "< Prev")
         self.btn_pause   = Button(ax_pp, "Pause")
         self.btn_forward = Button(ax_fw, "Next >")
+        self.btn_save    = Button(ax_save, "💾 Save")
 
         self.btn_menu.on_clicked(self._on_menu)
         self.btn_rewind.on_clicked(self._on_rewind)
         self.btn_pause.on_clicked(self._toggle_pause)
         self.btn_forward.on_clicked(self._on_forward)
+        self.btn_save.on_clicked(self._on_save)
+
+        # Set by the runner during a live run; clicking Save just raises this
+        # flag, the runner (which owns the save path/config) performs the
+        # actual write and clears it again.
+        self.save_request = False
 
         self._label = self.fig.text(
             rl + 0.5 * rw, rb + 0.985 * rh, "",
@@ -179,6 +187,9 @@ class ControlPanel:
 
     def _on_menu(self, event):
         self.back_to_menu = True
+
+    def _on_save(self, event):
+        self.save_request = True
 
     def _on_speed_change(self, pos):
         pos = float(pos)

@@ -30,6 +30,7 @@ Examples
 import argparse
 import os
 import random
+import signal
 
 # Force a non-interactive backend BEFORE anything imports matplotlib via the
 # environment package — this is what makes the run truly headless.
@@ -112,11 +113,13 @@ def build_agents(kind: str, n_collectors: int, n_cutters: int, args):
         from agents.llm_agent import LLMAgent
         if args.llm_backend == "mistral":
             from llm.llmmanager_mistral import LLMManagerMistral
-            llm = LLMManagerMistral(False)
+            llm = LLMManagerMistral(False, model=args.llm_model,
+                                     reasoning_effort=args.llm_reasoning_effort)
         else:
             from llm.llmmanager import LLMManager
             llm = LLMManager(args.llm_model, use_experience=False)
-        return {name: LLMAgent(name, llm, 0) for name in names}
+        return {name: LLMAgent(name, llm, 0, guidance=not args.llm_no_guidance,
+                                force_reasoning=args.llm_force_reasoning) for name in names}
 
     raise SystemExit(f"Unknown --agents kind: {kind!r}")
 
@@ -193,11 +196,32 @@ def run_once(args, seed: int) -> dict:
     # Execution episode (no rendering). We wire a StateHistory so the run can be
     # saved as a replay if requested.
     history = StateHistory()
-    for ep in range(args.episodes):
-        env.reset()
-        from agents.blackboard import shared_blackboard
-        shared_blackboard.clear()
-        _run_episode_headless(runner, env, history if args.save else None)
+    saves_dir = os.path.join(BASE_DIR, "saves")
+    interrupted = {"saved_path": None}
+
+    def _save_on_interrupt(signum, frame):
+        # Ctrl-C / kill mid-run (e.g. an open-ended experiment stopped by hand):
+        # save whatever the history has so far instead of losing the whole run.
+        if args.save and len(history) > 0 and interrupted["saved_path"] is None:
+            path = next_save_path(saves_dir)
+            history.save_to_file(path, config)
+            interrupted["saved_path"] = path
+            print(f"\nInterrupted (signal {signum}) — saved partial replay to {path} "
+                  f"({len(history)} cycles)")
+        raise SystemExit(1)
+
+    prev_sigterm = signal.signal(signal.SIGTERM, _save_on_interrupt)
+    prev_sigint = signal.signal(signal.SIGINT, _save_on_interrupt)
+    try:
+        for ep in range(args.episodes):
+            env.reset()
+            from agents.blackboard import shared_blackboard
+            shared_blackboard.clear()
+            _run_episode_headless(runner, env, history if args.save else None,
+                                   progress_every=0 if args.quiet else 10)
+    finally:
+        signal.signal(signal.SIGTERM, prev_sigterm)
+        signal.signal(signal.SIGINT, prev_sigint)
 
     metrics = collect_metrics(env)
 
@@ -205,8 +229,7 @@ def run_once(args, seed: int) -> dict:
         env.run_logger.log_summary(SimulationStats.summary(env))
         env.run_logger.close()
 
-    if args.save and len(history) > 0:
-        saves_dir = os.path.join(BASE_DIR, "saves")
+    if args.save and len(history) > 0 and interrupted["saved_path"] is None:
         path = next_save_path(saves_dir)
         history.save_to_file(path, config)
         metrics["saved"] = path
@@ -218,10 +241,11 @@ def run_once(args, seed: int) -> dict:
     return metrics
 
 
-def _run_episode_headless(runner: EpisodeRunner, env, history) -> None:
+def _run_episode_headless(runner: EpisodeRunner, env, history, progress_every: int = 0) -> None:
     """Step one episode with no renderer. Mirrors EpisodeRunner.run_episode but
     without any GUI / pause logic, and records a snapshot per cycle if a history
-    is given (so --save can write a replay)."""
+    is given (so --save can write a replay). If progress_every > 0, prints the
+    current cycle every that many cycles (useful for slow LLM runs)."""
     from agents.blackboard import shared_blackboard
     last_rewards = {a: 0 for a in env.agents}
     max_cycles = getattr(env.config, "max_cycles", 100)
@@ -251,9 +275,12 @@ def _run_episode_headless(runner: EpisodeRunner, env, history) -> None:
         if hasattr(agent, "after_action"):
             agent.after_action(obs, action, reward, next_obs, post_done, info)
 
-        if history is not None and env.cycle != prev_cycle:
-            history.save(env)
+        if env.cycle != prev_cycle:
+            if history is not None:
+                history.save(env)
             prev_cycle = env.cycle
+            if progress_every and env.cycle % progress_every == 0:
+                print(f"  ... cycle {env.cycle}/{max_cycles}", flush=True)
 
     for agent in runner.agents.values():
         agent.on_episode_end()
@@ -317,6 +344,15 @@ def main():
                         "(relative to src/sim); also captures LLM blackboard plans")
     p.add_argument("--llm-backend", choices=["ollama", "mistral"], default="ollama")
     p.add_argument("--llm-model", default="qwen2.5:3b-instruct")
+    p.add_argument("--llm-reasoning-effort", default=None,
+                   choices=[None, "none", "minimal", "low", "medium", "high", "xhigh"],
+                   help="Mistral-only: reasoning_effort for models with configurable thinking")
+    p.add_argument("--llm-no-guidance", action="store_true",
+                   help="disable the rule-based navigation hint/claim-filtering and let "
+                        "the LLM navigate and coordinate purely on its own")
+    p.add_argument("--llm-force-reasoning", action="store_true",
+                   help="only with --llm-no-guidance: force the model to write out its "
+                        "dx/dy arithmetic as a REASONING line before answering")
     p.add_argument("--quiet", action="store_true",
                    help="don't print each run's full summary block")
     args = p.parse_args()

@@ -34,11 +34,11 @@ def _build_session(renderer=None):
     agents = {
         # --- Default demo: rule-based (Greedy) agents. Need no API/Ollama and
         #     are deterministic with a fixed seed. Matches README + docs/demo.md. ---
-        "collector_0": GreedyCollector("collector_0"),
-        "collector_1": GreedyCollector("collector_1"),
-        "collector_2": GreedyCollector("collector_2"),
-        "cutter_0": GreedyCutter("cutter_0"),
-        "cutter_1": GreedyCutter("cutter_1"),
+        #"collector_0": GreedyCollector("collector_0"),
+        #"collector_1": GreedyCollector("collector_1"),
+        #"collector_2": GreedyCollector("collector_2"),
+        #"cutter_0": GreedyCutter("cutter_0"),
+        #"cutter_1": GreedyCutter("cutter_1"),
 
         # --- Alternative: RL agents (tabular Q-learning). Uncomment these and the
         #     training phase below turns on automatically. ---
@@ -47,8 +47,12 @@ def _build_session(renderer=None):
         #"cutter_0": RLAgent("cutter_0", debug=True),
 
         # --- Alternative: LLM agents (need Ollama running or MISTRAL_API_KEY). ---
-        #"collector_0": LLMAgent("collector_0", llm, 0),
-        #"cutter_0": LLMAgent("cutter_0", llm, 0),
+        "collector_0": LLMAgent("collector_0", llm, 0),
+        "cutter_0": LLMAgent("cutter_0", llm, 0),
+        "collector_1": LLMAgent("collector_1", llm, 0),
+        "cutter_1": LLMAgent("cutter_1", llm, 0),
+        "collector_2": LLMAgent("collector_2", llm, 0),
+        "cutter_2": LLMAgent("cutter_2", llm, 0),
     }
     env = GridForestEnv(config, agents, renderer=renderer)
     return config, agents, env
@@ -103,7 +107,8 @@ def main() -> None:
             env=env,
             agents=agents,
             logger=PrintLogger(),
-            evaluator=BasicEvaluator()
+            evaluator=BasicEvaluator(),
+            saves_dir=saves_dir
         )
 
         # ToDo: Separate training cycle

@@ -58,6 +58,10 @@ class GridWorldRenderer:
         # Set by the runner before the first render call
         self.state_history = None
         self.blackboard = None
+        # Set by the runner during a live run: called when the user clicks Save,
+        # even while paused (the pause loop below polls for the request so a
+        # long-running paused session doesn't have to resume just to save).
+        self.on_save = None
 
         # Kept across calls so _wait_if_paused can redraw without extra args
         self._last_world = None
@@ -295,6 +299,7 @@ class GridWorldRenderer:
         latest = hist.cycle_at(hist.latest_index)
         tag = "[paused]" if self.control_panel.paused else "[playing]"
         self.control_panel.set_label(f"Replay — Cycle {cycle} / {latest}  {tag}")
+        self.control_panel.update_blackboard(hist.blackboard_at(idx))
         self.control_panel.update_graph(hist, idx)
         self._flush_gui()
 
@@ -362,6 +367,11 @@ class GridWorldRenderer:
             if self._should_quit():
                 self._quit()
             self._check_back_to_menu()
+
+            if cp.save_request:
+                cp.save_request = False
+                if self.on_save is not None:
+                    self.on_save()
 
             # Step request (Next at the latest cycle): leave the pause loop, run
             # exactly one more cycle, then pause again (handled at the top on the

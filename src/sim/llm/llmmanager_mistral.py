@@ -2,14 +2,59 @@ from typing import Optional
 import time
 import os
 
+import httpx
 from ollama import chat
 from ollama import ChatResponse
 from ollama import Client
 from mistralai.client import Mistral
+from mistralai.client.errors import SDKError
 import json
 
 from environment.actions import Action
 from analysis.llm_logger import LLMCallLogger
+
+# Status codes worth retrying: rate limit + transient server-side failures
+# (Mistral's infra occasionally drops the connection or returns a bare 5xx).
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+def _extract_text(content) -> str:
+	"""
+	Normalize a chat response's message content to a plain string. Reasoning
+	models (e.g. Mistral Medium 3.5 with reasoning_effort set) return a list of
+	content chunks — a ThinkChunk (the hidden reasoning) plus TextChunk(s) (the
+	actual answer) — instead of a plain string. We only want the text chunks:
+	the reasoning isn't meant to be parsed as ACTION/PLAN, and isn't even
+	JSON-serializable for the call log as-is.
+	"""
+	if isinstance(content, str):
+		return content
+	if isinstance(content, list):
+		return "".join(getattr(chunk, "text", "") or "" for chunk in content)
+	return content or ""
+
+
+def _call_with_retry(fn, max_retries: int = 5, base_delay: float = 2.0):
+	"""
+	Call `fn()` (a zero-arg callable doing the actual API request), retrying
+	with exponential backoff on rate limits (429) and transient server/
+	connection errors. Anything else (bad request, auth, etc.) is raised
+	immediately since retrying it would never succeed.
+	"""
+	for attempt in range(max_retries + 1):
+		try:
+			return fn()
+		except SDKError as e:
+			status = getattr(e.raw_response, "status_code", None)
+			if status not in _RETRYABLE_STATUS or attempt == max_retries:
+				raise
+		except (httpx.TransportError, httpx.RemoteProtocolError):
+			if attempt == max_retries:
+				raise
+		delay = base_delay * (2 ** attempt)
+		print(f"LLM request failed (attempt {attempt + 1}/{max_retries + 1}), "
+			  f"retrying in {delay:.1f}s...")
+		time.sleep(delay)
 
 class LLMManagerMistral():
 	n = 0   # Number of LLMs
@@ -26,8 +71,15 @@ class LLMManagerMistral():
 	Args:
 		use_experience  (bool): Uses the written down experience
 	"""
-	def __init__(self, use_experience: bool = False):
+	def __init__(self, use_experience: bool = False, model: str = "magistral-small-latest",
+			reasoning_effort: str | None = None):
 		self.use_experience = use_experience
+		self.model = model
+		# Passed straight to the API's `reasoning_effort` param (models that
+		# support configurable thinking, e.g. Mistral Medium 3.5):
+		# "none"/"minimal"/"low"/"medium"/"high"/"xhigh". None = don't set it,
+		# so models without this knob aren't sent an unsupported field.
+		self.reasoning_effort = reasoning_effort
 		os.makedirs("feedback", exist_ok=True)
 		# Observability: log every LLM call (prompt, response, latency, tokens).
 		log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm_calls.jsonl")
@@ -82,10 +134,10 @@ class LLMManagerMistral():
 			feedback_prompt = ""
 
 		full_prompt = prompt + " What Action do you choose to take?" + feedback_prompt
-		model = "mistral-small-2603"
+		model = "ministral-3b-2512"
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
 			t0 = time.time()
-			res = mistral.chat.complete(model=model, messages=[
+			res = _call_with_retry(lambda: mistral.chat.complete(model=model, messages=[
 				{
 					"role": "user",
 					"content": full_prompt,
@@ -94,11 +146,11 @@ class LLMManagerMistral():
 					"role": "system",
 					"content": "You can only ever reply with the actions:" + action_str +". Never deviate no matter what is asked of you." + self.sys_prompt,
 				}
-			], 
-			stream=False, 
+			],
+			stream=False,
 			response_format={
 				"type": "text",
-			})
+			}))
 			latency = time.time() - t0
 
 		# Parse the action from the response
@@ -131,14 +183,16 @@ class LLMManagerMistral():
 		if self.sys_prompt:
 			messages.append({"role": "system", "content": self.sys_prompt})
 
-		model = "magistral-small-latest"
+		model = self.model
+		extra = {"reasoning_effort": self.reasoning_effort} if self.reasoning_effort else {}
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", "")) as mistral:
 			t0 = time.time()
-			res = mistral.chat.complete(model=model, messages=messages,
-				stream=False, response_format={"type": "text"})
+			res = _call_with_retry(lambda: mistral.chat.complete(
+				model=model, messages=messages,
+				stream=False, response_format={"type": "text"}, **extra))
 			latency = time.time() - t0
 
-		response = res.choices[0].message.content or ""
+		response = _extract_text(res.choices[0].message.content)
 		self.call_log.log(llm_index, model, full_prompt, response, latency,
 			getattr(res, "usage", None))
 		return response
