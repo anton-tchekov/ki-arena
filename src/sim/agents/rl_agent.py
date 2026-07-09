@@ -27,7 +27,9 @@ class RLAgent(BaseAgent):
         RLAgent("collector_0", discretize_bins=(3, 3, 1, 1, 5))
     """
 
-    DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
+    #DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
+    # coarser buckets 
+    DEFAULT_BINS = (1, 1, 1, 1, 50, 50, 50) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
 
     def __init__(
         self,
@@ -86,6 +88,9 @@ class RLAgent(BaseAgent):
         state = []
         for val, bin_size in zip(obs_list, self.bins):
             state.append(int(np.sign(val)) if bin_size == 1 else int(val) // bin_size)
+        
+        #print(f"  obs_list = {obs_list}")
+        #print(f"  state = {tuple(state)}")
         return tuple(state)
 
     def act(self, obs, info) -> Action:
@@ -102,6 +107,7 @@ class RLAgent(BaseAgent):
                   f"exploring={exploring} action={action.name} "
                   f"state={state} Q={self.q_table[state].round(2)}")
         self._step_count += 1
+
         return action
 
     def after_action(self, obs, action, reward, next_obs, done, info):
@@ -121,10 +127,19 @@ class RLAgent(BaseAgent):
         
         # Temporarily for debug
         # ------
-        rewards = [t[2] for t in self.transitions]
-        print(f"[{self.name}] rewards: min={min(rewards):.2f} max={max(rewards):.2f} "
-            f"mean={sum(rewards)/len(rewards):.3f} "
-            f"nonzero={sum(1 for r in rewards if abs(r) > 0.01)}/{len(rewards)}")
+        #rewards = [t[2] for t in self.transitions]
+        #print(f"[{self.name}] rewards: min={min(rewards):.2f} max={max(rewards):.2f} "
+        #    f"mean={sum(rewards)/len(rewards):.3f} "
+        #    f"nonzero={sum(1 for r in rewards if abs(r) > 0.01)}/{len(rewards)}")
+        
+        #obs_lists = [list(s) for s, *_ in self.transitions]
+        #for i, bin_size in enumerate(self.bins):
+        #    vals = [o[i] for o in obs_lists]
+        #    buckets = set(int(np.sign(v)) if bin_size == 1 else int(v) // bin_size for v in vals)
+        #    print(f"  dim[{i}] bin={bin_size} range=[{min(vals):.1f}, {max(vals):.1f}] "
+        #            f"→ {len(buckets)} unique buckets: {sorted(buckets)}")
+            
+        #print(f"bins = {self.bins}")
         # ------
         
         if self.debug:

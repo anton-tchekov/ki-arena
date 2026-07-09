@@ -21,15 +21,17 @@ def main() -> None:
 
     config = EnvConfig()
     agents = {
+
+        "collector_0": RLAgent("collector_0", debug=True),
+        "collector_1": GreedyCollector("collector_1"),
+        "cutter_0": GreedyCutter("cutter_0"),
+        #"collector_1": RLAgent("collector_1", debug=True),
+        #"cutter_0": RLAgent("cutter_0", debug=True),
+
+        
         #"collector_0": LLMAgent("collector_0", llm, 0),
         #"collector_1": LLMAgent("collector_1", llm, 0),
-        
-        "collector_0": RLAgent("collector_0", debug=True),
-        "collector_1": RLAgent("collector_1", debug=True),
-        "cutter_0": RLAgent("cutter_0", debug=True),
         #"cutter_1": LLMAgent("cutter_1", llm, 0),
-        #"collector_0": RLAgent("collector_0"),
-        #"cutter_0": RLAgent("cutter_0"),
     }
     env = GridForestEnv(config, agents)
 
@@ -60,7 +62,7 @@ def main() -> None:
         )
         
         # ToDo: Separate training cycle
-        arena.run_phase(TrainingPhase(episodes=100))
+        arena.run_phase(TrainingPhase(episodes=10))
         print("Training finished. Running learned execution phase...")
 
 

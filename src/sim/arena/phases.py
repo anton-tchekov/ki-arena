@@ -12,7 +12,7 @@ class TrainingPhase(Phase):
 
     def run(self, arena):
         for ep in range(self.episodes):
-            arena.runner.run_episode(training=True)          # fills transition buffers
+            arena.runner.run_episode(training=False)          # fills transition buffers
             for agent in arena.agents.values():
                 if hasattr(agent, "train_step"):
                     agent.train_step()          # trains + clears buffers
