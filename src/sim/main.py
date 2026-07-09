@@ -42,17 +42,22 @@ def _build_session(renderer=None):
 
         # --- Alternative: RL agents (tabular Q-learning). Uncomment these and the
         #     training phase below turns on automatically. ---
-        #"collector_0": RLAgent("collector_0", debug=True),
-        #"collector_1": RLAgent("collector_1", debug=True),
-        #"cutter_0": RLAgent("cutter_0", debug=True),
+        "collector_0": RLAgent("collector_0", debug=True),
+        "collector_1": RLAgent("collector_1", debug=True),
+        "collector_2": RLAgent("collector_2", debug=True),
+        "collector_3": RLAgent("collector_3", debug=True),
+        "cutter_0": RLAgent("cutter_0", debug=True),
+        "cutter_1": RLAgent("cutter_1", debug=True),
+        "cutter_2": RLAgent("cutter_2", debug=True),
+        "cutter_3": RLAgent("cutter_3", debug=True),
 
         # --- Alternative: LLM agents (need Ollama running or MISTRAL_API_KEY). ---
-        "collector_0": LLMAgent("collector_0", llm, 0),
-        "cutter_0": LLMAgent("cutter_0", llm, 0),
-        "collector_1": LLMAgent("collector_1", llm, 0),
-        "cutter_1": LLMAgent("cutter_1", llm, 0),
-        "collector_2": LLMAgent("collector_2", llm, 0),
-        "cutter_2": LLMAgent("cutter_2", llm, 0),
+        #"collector_0": LLMAgent("collector_0", llm, 0),
+        #"cutter_0": LLMAgent("cutter_0", llm, 0),
+        #"collector_1": LLMAgent("collector_1", llm, 0),
+        #"cutter_1": LLMAgent("cutter_1", llm, 0),
+        #"collector_2": LLMAgent("collector_2", llm, 0),
+        #"cutter_2": LLMAgent("cutter_2", llm, 0),
     }
     env = GridForestEnv(config, agents, renderer=renderer)
     return config, agents, env
@@ -113,7 +118,7 @@ def main() -> None:
 
         # ToDo: Separate training cycle
         # load pre-trained agents if available (e.g. from previous training runs)
-        load_rl_agents = False
+        load_rl_agents = True
         if(load_rl_agents):
             for agent in agents.values():
                 if hasattr(agent, "load"):
@@ -121,6 +126,7 @@ def main() -> None:
 
         # Train only when RL agents are present; rule/LLM agents need no training.
         learning = any(isinstance(a, RLAgent) for a in agents.values())
+        learning = learning and cp.ask_yes_no("Run a training phase before execution?", "Train", "Skip")
         if learning:
             # RL reward shaping — only meaningful while training the Q-tables.
             config.reward_fn = CompositeRewardFn(
@@ -134,7 +140,7 @@ def main() -> None:
             env.reward_fn = config.reward_fn
 
             try:
-                arena.run_phase(TrainingPhase(episodes=100))
+                arena.run_phase(TrainingPhase(episodes=10000))
             except BackToMenu:
                 # Full reset before the menu reappears, same window.
                 config, agents, env = _build_session(renderer=env.renderer)

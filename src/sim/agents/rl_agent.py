@@ -68,7 +68,8 @@ class RLAgent(BaseAgent):
             x, y = obs['x'], obs['y']
             trees = obs.get('trees', {})
             if trees:
-                tx, ty = min(trees.keys(), key=lambda t: abs(t[0]-x) + abs(t[1]-y))
+                candidates = [t for t, f in trees.items() if f > 0] or list(trees.keys()) # check the trees that have fruits first, when none have - fall back to closest
+                tx, ty = min(candidates, key=lambda t: abs(t[0]-x) + abs(t[1]-y))
                 dx, dy = tx - x, ty - y
             else:
                 dx, dy = 0, 0
@@ -157,7 +158,7 @@ class RLAgent(BaseAgent):
             )
 
         self.transitions.clear()
-        self.epsilon = max(0.01, self.epsilon * 0.995)
+        self.epsilon = max(0.01, self.epsilon * 0.9995)
         self._episode_count += 1
 
     def observe(self, obs, reward, done, info):
