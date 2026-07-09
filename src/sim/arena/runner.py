@@ -1,15 +1,19 @@
+import os
+
 from environment.env_grid import GridForestEnv
-from environment.state_history import StateHistory
+from environment.state_history import StateHistory, next_save_path
 from analysis.logger import Logger
 from agents.blackboard import shared_blackboard
 from agents.rule_agent import GreedyCollector, GreedyCutter
 
 
 class EpisodeRunner:
-    def __init__(self, env: GridForestEnv, agents: dict, logger: Logger | None = None):
+    def __init__(self, env: GridForestEnv, agents: dict, logger: Logger | None = None,
+                 saves_dir: str | None = None):
         self.env = env
         self.agents = agents
         self.logger = logger
+        self.saves_dir = saves_dir
         self._dynamic_agents = {}
 
     def _resolve_agent(self, agent_name: str):
@@ -20,6 +24,20 @@ class EpisodeRunner:
             cls = GreedyCutter if "cutter" in agent_type else GreedyCollector
             self._dynamic_agents[agent_name] = cls(agent_name)
         return self._dynamic_agents[agent_name]
+
+    def _save_now(self, state_history) -> None:
+        """Save everything recorded so far (including blackboard notes) as a
+        replay .bin — triggered by the control panel's Save button, so a long
+        live run doesn't have to finish before it can be kept."""
+        if not self.saves_dir or len(state_history) == 0:
+            return
+        try:
+            path = next_save_path(self.saves_dir)
+            state_history.save_to_file(path, self.env.config)
+            print(f"Saved replay so far to {path}")
+            self.env.renderer.control_panel.set_label(f"Saved to {os.path.basename(path)}")
+        except Exception as e:
+            print(f"Could not save replay: {e}")
 
     def run_episode(self, render=False, training=False):
         self.env.reset()
@@ -34,6 +52,7 @@ class EpisodeRunner:
         if render:
             self.env.renderer.state_history = state_history
             self.env.renderer.blackboard = shared_blackboard
+            self.env.renderer.on_save = lambda: self._save_now(state_history)
 
         while True:
             must_restart = False
@@ -56,6 +75,11 @@ class EpisodeRunner:
                     self.env.step(None)
                     continue
 
+                # LLM agents act strictly one at a time (not batched/parallel):
+                # each reads the whole blackboard — including notes just posted
+                # by teammates earlier this same cycle — before deciding, and
+                # posts its own note immediately after, so turn order gives an
+                # implicit priority: whoever acts first claims first.
                 action = agent.act(obs, info)
                 self.env.step(action)
 
@@ -82,8 +106,12 @@ class EpisodeRunner:
 
                     self.env.render()
 
-                    # Check if user resumed from a past snapshot
                     cp = self.env.renderer.control_panel
+                    if cp.save_request:
+                        cp.save_request = False
+                        self._save_now(state_history)
+
+                    # Check if user resumed from a past snapshot
                     if cp.needs_restore:
                         idx = cp.view_index
                         state_history.restore(self.env, idx)

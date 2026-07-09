@@ -1,0 +1,15 @@
+Run: greedy-0.3-boom.bin
+Tag: 0.3-boom  (Regel-Agenten, Seed 2, tree_spawn_rate=0.3)
+Reproduzieren: python run_headless.py --agents greedy --seeds 2 --set tree_spawn_rate=0.3 --save
+
+Ergebnis: 1990 Zyklen, Peak-Pop 8, Schnitt-Pop 5.06, 36 Spawns.
+Tode -> Alter 37, Holz 0, Frucht 4 (dominant: Alter).
+Ende: 9 Bäume, Holz 125, Frucht 1.
+
+Warum interessant: der Boom-Ast des bimodalen 0.3-Regimes. Bei exakt derselben Konfig
+wie greedy-0.3-bust (nur anderer Seed) laeuft die Kolonie 1990 statt 250 Zyklen, fast
+8x so lang. Der fruehe Zufall laesst das Holz ueber die Spawn-Schwelle (100) steigen,
+es kommt Nachwuchs (36 Spawns), die Gruppe traegt sich selbst ueber fast 2000 Zyklen.
+Am Ende ist Frucht der Engpass (nur noch 1), Holz ist reichlich (125) - Spiegelbild
+von greedy-0.3-bust. Zusammen zeigen beide, dass am Kipppunkt 0.3 allein der Seed
+ueber Boom oder Bust entscheidet.

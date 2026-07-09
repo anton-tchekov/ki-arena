@@ -11,10 +11,17 @@ MAX_CYCLES = 10000                # Maximum cycles before termination
 # =============================================================================
 STARTING_FRUIT = 100
 STARTING_WOOD  = 50
-TREE_SPAWN_RATE = 0.2            # Probability (0-1) to spawn a new tree each cycle
-MAX_TREES = 10                   # Maximum number of trees allowed in the world
-FRUIT_SPAWN_RATE = 2.0           # Probability (0-1) per tree to grow fruit each cycle
+TREE_SPAWN_RATE = 0.5            # Probability (0-1) to spawn a new tree each cycle
+MAX_TREES = 20                   # Maximum number of trees allowed in the world
+FRUIT_SPAWN_RATE = 0.4           # Probability (0-1) per tree to grow fruit each cycle
 FRUIT_GROWTH_AMOUNT = 1          # Number of fruits added when a tree grows
+
+# =============================================================================
+# RESOURCE HARVESTING SETTINGS
+# Controls what agents gain when they interact with a tree
+# =============================================================================
+WOOD_PER_TREE = 5               # Wood a cutter gains from cutting down one tree
+CUTTER_FOREST_RESERVE = 0       # Cutters stop cutting at this many trees left (0 = off)
 
 # =============================================================================
 # RESOURCE CONSUMPTION SETTINGS
@@ -33,15 +40,18 @@ USE_PER_AGENT_CONSUMPTION = True  # Set True to use per-agent consumption, False
 # AGENT SPAWNING SETTINGS
 # Controls when and how new agents spawn
 # =============================================================================
-SPAWN_THRESHOLD = 1000           # Spawn new agent when wood OR fruits >= this
-SPAWN_TYPE = "random"            # "random", "cutter", or "collector"
+SPAWN_THRESHOLD = 100             # Spawn new agent when wood AND fruits >= this
+SPAWN_FRUIT_COST = 20            # Fruits deducted from resources when a new agent spawns
+SPAWN_WOOD_COST = 20             # Wood deducted from resources when a new agent spawns
+SPAWN_TYPE = "balanced"            # "random", "balanced", "cutter", or "collector"
+                                 # "balanced": spawn whichever role currently has fewer agents
 
 # =============================================================================
 # AGENT DEATH SETTINGS
 # Controls conditions for agent death
 # =============================================================================
-ENABLE_AGING = False              # Set True to enable death by old age
-MAX_AGE = 50                     # Cycles before agent dies from aging
+ENABLE_AGING = True              # Set True to enable death by old age
+MAX_AGE = 250                     # Cycles before agent dies from aging
 ENABLE_RESOURCE_STARVATION = True # Set True to enable death by resource shortage
 COLLECTOR_MIN_FRUITS = 1         # Collector dies if fruits < this (when enabled)
 CUTTER_MIN_WOOD = 1              # Cutter dies if wood < this (when enabled)
@@ -74,7 +84,11 @@ class EnvConfig:
         self.fruit_spawn_rate = FRUIT_SPAWN_RATE
         self.fruit_growth_amount = FRUIT_GROWTH_AMOUNT
         self.starting_fruit = STARTING_FRUIT
-        self.starting_wood = STARTING_WOOD 
+        self.starting_wood = STARTING_WOOD
+
+        # RESOURCE HARVESTING SETTINGS
+        self.wood_per_tree = WOOD_PER_TREE
+        self.cutter_forest_reserve = CUTTER_FOREST_RESERVE
 
         # RESOURCE CONSUMPTION SETTINGS
         self.enable_wood_consumption = ENABLE_WOOD_CONSUMPTION
@@ -87,6 +101,8 @@ class EnvConfig:
 
         # AGENT SPAWNING SETTINGS
         self.spawn_threshold = SPAWN_THRESHOLD
+        self.spawn_fruit_cost = SPAWN_FRUIT_COST
+        self.spawn_wood_cost = SPAWN_WOOD_COST
         self.spawn_type = SPAWN_TYPE
 
         # AGENT DEATH SETTINGS

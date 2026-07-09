@@ -1,0 +1,26 @@
+Run: llm-coordination.bin
+Tag: llm-survival  (LLM-Agenten, Mistral-API magistral-small-latest, Seed 1, natuerlicher Tod)
+Reproduzieren: MISTRAL_API_KEY=... python run_headless.py --agents llm --llm-backend mistral \
+                 --seeds 1 --set max_cycles=600 --save --log logfile_llm.txt
+(Standard-Konfig: 3 Collector + 2 Cutter.)
+
+Ergebnis: 172 Zyklen, dann Kollaps durch FRUCHTMANGEL (alle 6 Agenten verhungern
+gleichzeitig an Frucht). Peak-Pop 6, 1 Spawn. Ende: 12 Baeume, Holz ~260, Frucht 0.
+
+Warum interessant: der LLM-Referenzlauf fuer die "wer ueberlebt laenger"-Tabelle, und
+ein perfektes Spiegelbild zum RL-Kollaps. RL stirbt an Zyklus 60 an Holzmangel (Cutter
+faellen nicht, Wald bleibt bei 20), LLM stirbt an Zyklus 172 an Fruchtmangel (Cutter
+faellen zu viel, Holz haeuft sich auf 260, aber die Baeume und damit die Frucht
+sterben), Regel ueberlebt 461 an Alter - die einzige balancierte Oekonomie.
+
+Ressourcenverlauf: Holz steigt monoton 49 -> 65 -> 95 -> 127 -> 199 -> 251, Frucht
+faellt monoton 99 -> 77 -> 50 -> 26 -> 8 -> 0. Das LLM optimiert einseitig Holz und
+verhungert an Frucht. Mitschuld hat die Koordination: die drei Collector zielen
+wiederholt auf denselben reichsten Baum (Blackboard-Plaene im logfile_llm.txt),
+sammeln effektiv zu wenig Frucht, waehrend die Cutter fleissig alles abholzen.
+
+Das Mistral-Modell argumentiert explizit ueber Aufteilung ("leaving closer trees for
+others", "avoiding overlap"), schafft die harte Aufteilung wie bei
+_pick_uncontested_tree der Regel-Agenten aber nicht. Alle 860 Aufrufe lieferten
+gueltiges ACTION-Format, Fallback nie noetig. Latenz 0.4-2 s, Prompt ~1040 Tokens,
+alles in llm_calls.jsonl. Siehe docs/labnotebook.md (Agenten-Vergleich).

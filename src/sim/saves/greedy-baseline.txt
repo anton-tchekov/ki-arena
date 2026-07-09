@@ -1,0 +1,13 @@
+Run: greedy-baseline.bin
+Tag: baseline  (Original-Save des Teams, Regel-Agenten, Standard-Konfig)
+
+Inhalt: 107 Zyklen, Standard-Konfig (tree_spawn_rate 0.5, wood_per_tree 5,
+Spawn-Schwelle 100, max_age 250). Die Population stirbt auf 0 herunter, am Ende
+Holz 0.8 / Frucht 37.8 -> ein früher Kollaps (Holz zuerst leer).
+
+WARUM INTERESSANT
+Der bestehende Baseline-Lauf aus dem Repo. Er zeigt den "Pech-Fall" der
+Standard-Konfig: obwohl 0.5 im Mittel ~500 Zyklen schafft, kann ein einzelner Lauf
+schon nach ~107 Zyklen kippen, wenn das Holz früh knapp wird. Gutes Gegenbeispiel
+zu den langen 0.5-Läufen und ein weiterer Beleg für die hohe Seed-Abhängigkeit
+(siehe greedy-0.3-boom / greedy-0.3-bust).

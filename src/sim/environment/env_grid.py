@@ -18,12 +18,19 @@ from environment.actions import Action
 class GridForestEnv(AECEnv):
     metadata = {"name": "grid_forest_v1"}
 
-    def __init__(self, config: EnvConfig, agents: dict[str, BaseAgent]|None = None):
+    def __init__(self, config: EnvConfig, agents: dict[str, BaseAgent]|None = None,
+                 renderer: GridWorldRenderer|None = None):
         super().__init__()
 
         self.config = config
         self.world = GridWorld(config.size, config.n_trees, config)
-        self.renderer = GridWorldRenderer()
+        # Reuse an existing renderer/window when given (e.g. rebuilding the env
+        # for a full reset without opening a second GUI window); otherwise open
+        # a fresh one.
+        self.renderer = renderer if renderer is not None else GridWorldRenderer()
+
+        # Optional run logger (set by main); guarded everywhere so logging is optional.
+        self.run_logger = None
         
         # Resource manager for tracking wood and fruits
         self.resource_manager = ResourceManager(config)
@@ -81,6 +88,11 @@ class GridForestEnv(AECEnv):
         self.stats_agents_died = 0
         self.stats_peak_population = len(self.agents)
         self.agent_lifespans = {}  # agent -> cycles lived (recorded at death)
+        # Death breakdown by cause and running sums (averaged over cycles) for
+        # the "sustainable" population and the population's average age.
+        self.stats_deaths_by_cause = {"old age": 0, "starvation_fruit": 0, "starvation_wood": 0}
+        self.stats_population_sum = 0
+        self.stats_age_sum = 0.0
 
         # Reset resource manager
         self.resource_manager = ResourceManager(self.config)
@@ -171,6 +183,19 @@ class GridForestEnv(AECEnv):
                 if cond.check(self.world, self.cycle):
                     self.truncations = {a: True for a in self.agents}
 
+            # Demographics: accumulate population for the running (sustainable)
+            # average, and mirror the live demographic stats onto the world so
+            # the renderer / control panel can display them.
+            self.stats_population_sum += len(self.agents)
+            cycle_ages = [self.world.agent_ages.get(a, 0) for a in self.agents]
+            self.stats_age_sum += (sum(cycle_ages) / len(cycle_ages)) if cycle_ages else 0
+            self.world.deaths_by_cause = self.stats_deaths_by_cause
+            self.world.avg_population = self.stats_population_sum / max(1, self.cycle)
+
+            # End-of-cycle state digest (spawn/death events were logged above)
+            if self.run_logger:
+                self.run_logger.log_cycle(self)
+
         self._accumulate_rewards()
 
         # Advance to next agent for the next iteration
@@ -188,6 +213,16 @@ class GridForestEnv(AECEnv):
         # Determine agent type from config
         if self.config.spawn_type == "random":
             agent_type = random.choice(["cutter", "collector"])
+        elif self.config.spawn_type == "balanced":
+            # Spawn whichever role currently has fewer agents (tie -> random).
+            collectors = sum(1 for a in self.agents if "collector" in a)
+            cutters = sum(1 for a in self.agents if "cutter" in a)
+            if collectors < cutters:
+                agent_type = "collector"
+            elif cutters < collectors:
+                agent_type = "cutter"
+            else:
+                agent_type = random.choice(["cutter", "collector"])
         else:
             agent_type = self.config.spawn_type
         
@@ -238,9 +273,16 @@ class GridForestEnv(AECEnv):
         # Recreate agent selector with updated agents list
         self._agent_selector = agent_selector(self.agents)
 
+        # Deduct spawn cost from global resources
+        self.resource_manager.fruits = max(0, self.resource_manager.fruits - self.config.spawn_fruit_cost)
+        self.resource_manager.wood = max(0, self.resource_manager.wood - self.config.spawn_wood_cost)
+
         # Statistics
         self.stats_agents_spawned += 1
         self.stats_peak_population = max(self.stats_peak_population, len(self.agents))
+
+        if self.run_logger:
+            self.run_logger.log_spawn(self.cycle, new_agent_name, len(self.agents) - 1, len(self.agents))
 
     def _check_all_agents_death(self):
         """
@@ -248,50 +290,66 @@ class GridForestEnv(AECEnv):
         Called once per cycle during the global step.
         """
         agents_to_remove = []
-        
-        for agent in list(self.agents):
-            if self._should_agent_die(agent):
-                agents_to_remove.append(agent)
-        
-        for agent in agents_to_remove:
-            self._remove_agent(agent)
 
-    def _should_agent_die(self, agent):
+        for agent in list(self.agents):
+            reason = self._death_reason(agent)
+            if reason is not None:
+                agents_to_remove.append((agent, reason))
+
+        for agent, reason in agents_to_remove:
+            self._remove_agent(agent, reason)
+
+    def _death_reason(self, agent):
         """
-        Check if an agent should die based on configuration.
-        
-        Args:
-            agent: The agent name to check
-            
-        Returns:
-            bool: True if agent should die, False otherwise
+        Return a human-readable reason string if the agent should die this cycle,
+        or None if it survives. The reason is used both as the death trigger and
+        for the run log so deaths are understandable.
         """
-        # Check aging death
+        # Check aging death. The exact max age lives in the config header, so the
+        # reason string stays terse on purpose.
         if self.config.enable_aging:
             if self.world.agent_ages.get(agent, 0) >= self.config.max_age:
-                return True
+                return "old age"
 
         # Check resource starvation death.
         # Collective society: every agent needs BOTH fruit and wood, so any
         # agent starves if either resource runs out, regardless of its type.
         if self.config.enable_resource_starvation:
             if self.resource_manager.fruits < self.config.collector_min_fruits:
-                return True
+                return "starvation (fruit ran out)"
             if self.resource_manager.wood < self.config.cutter_min_wood:
-                return True
+                return "starvation (wood ran out)"
 
-        return False
+        return None
 
-    def _remove_agent(self, agent):
+    def _record_death_cause(self, reason: str) -> None:
+        """Bucket a death-reason string into the by-cause counters."""
+        if "old age" in reason:
+            key = "old age"
+        elif "wood" in reason:
+            key = "starvation_wood"
+        elif "fruit" in reason:
+            key = "starvation_fruit"
+        else:
+            return
+        self.stats_deaths_by_cause[key] = self.stats_deaths_by_cause.get(key, 0) + 1
+
+    def _remove_agent(self, agent, reason=None):
         """
         Remove an agent from the environment when it dies.
-        
+
         Args:
             agent: The agent name to remove
+            reason: Why the agent died (logged if a run logger is attached)
         """
         # Statistics: record how long this agent lived before removing its age
-        self.agent_lifespans[agent] = self.world.agent_ages.get(agent, 0)
+        age = self.world.agent_ages.get(agent, 0)
+        self.agent_lifespans[agent] = age
         self.stats_agents_died += 1
+        if reason is not None:
+            self._record_death_cause(reason)
+
+        pop_before = len(self.agents)
 
         # Remove from current agents list (but keep in possible_agents for reset)
         if agent in self.agents:
@@ -308,7 +366,10 @@ class GridForestEnv(AECEnv):
         # Mark as terminated
         self.terminations[agent] = True
         self.truncations[agent] = True
-        
+
+        if self.run_logger and reason is not None:
+            self.run_logger.log_death(self.cycle, agent, reason, age, pop_before, len(self.agents))
+
         # Recreate agent selector with updated agents list
         if len(self.agents) > 0:
             self._agent_selector = agent_selector(self.agents)

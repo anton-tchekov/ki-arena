@@ -1,27 +1,15 @@
 ## Aus welchen Komponenten besteht Ihr System?
 
-### Arena
-Das Zentrum der Architektur. Ist in Phasen unterteilt um beispielsweise zwischen einer Lern- und Spielphase zu unterscheiden
-
-### Analysis
-Dient zur Auswertung und Aufzeichnung des Spiels. Kann Beispielsweise Punkte für die Agenten verteilen, je nachdem wie gut sie sich schlagen
-
-### Environment
-Ein simples Grid, auf dem sich Bäume mit Früchten befinden. Agenten können sich in 4 Himmelsrichtungen bewegen und Interaktionen auslösen mit Bäumen
-
-### Agents
-
-#### Rule Based
-Standard regelbasierter Agent mit von uns gesetzten Regeln
-
-#### RL
-Neural Network, welches durch Reinforcement-Learning trainiert wird
-
-#### LLM
-Ein General-Purpose LLM. Bekommt Environment Informationen und agiert auf diese mithilfe von vergangener Erfahrung
+- **Arena** – Zentrum der Architektur, in Phasen unterteilt (z. B. Lern- vs. Spielphase)
+- **Analysis** – Auswertung/Aufzeichnung des Spiels, z. B. Punkte je nach Agenten-Performance
+- **Environment** – simples Grid mit Bäumen/Früchten; Agenten bewegen sich in 4 Himmelsrichtungen und interagieren mit Bäumen
+- **Agents**
+  - **Rule Based** – regelbasierter Agent mit fest gesetzten Regeln
+  - **RL** – tabellarischer Q-Learning-Agent (`agents/rl_agent.py`), Training über Q-Tabelle (kein neuronales Netz)
+  - **LLM** – General-Purpose LLM, bekommt Environment-Infos und agiert damit + vergangener Erfahrung
 
 ## Welche davon sind „Agenten” im Sinne von Kapitel 01?
-Derzeit sind keine davon Agenten im POMDP sinne, da sie alle full observability haben und nicht partial. Dies kann sich im Laufe des Projektes ändern.
+Keiner im POMDP-Sinne – alle haben full statt partial observability. Kann sich im Projektverlauf ändern.
 
 ## Zu welchem Punkt der Russell/Norvig-Taxonomie gehören sie?
 
@@ -42,7 +30,7 @@ Learning
 - Action: Bewegen und Interagieren
 
 ### RL
-- Memory: ist in den Gewichten.
+- Memory: liegt in der Q-Tabelle (Zustand -> Aktionswerte).
 - Planning: Basierend auf was geklappt hat in den Trainingsphasen
 - Action: Bewegen und Interagieren
 
