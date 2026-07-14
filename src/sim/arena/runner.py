@@ -128,6 +128,12 @@ class EpisodeRunner:
                 break
             # else: restart agent_iter from the restored env state
 
+        outcome = {
+            "cycles": self.env.cycle,
+            "population_end": len(self.env.agents),
+            "extinct": len(self.env.agents) == 0,
+        }
+
         for agent in self.agents.values():
             agent.on_episode_end()
         for agent in self._dynamic_agents.values():
@@ -136,3 +142,5 @@ class EpisodeRunner:
 
         if self.logger and not training:
             self.logger.log_episode_end(self.env)
+
+        return outcome 

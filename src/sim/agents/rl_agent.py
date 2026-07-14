@@ -28,8 +28,7 @@ class RLAgent(BaseAgent):
     """
 
     #DEFAULT_BINS = (3, 3, 1, 1, 10, 20, 20) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
-    # coarser buckets 
-    DEFAULT_BINS = (1, 1, 1, 1, 50, 50, 50) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
+    DEFAULT_BINS = (3, 3, 3, 3, 50, 50, 50) # pos_x, pos_y, dx, dy, total_fruit, wood, fruit
 
     def __init__(
         self,
@@ -42,7 +41,8 @@ class RLAgent(BaseAgent):
     ):
         super().__init__(name)
         self.bins = discretize_bins or self.DEFAULT_BINS
-        self.epsilon = epsilon
+        self.initial_epsilon = epsilon
+        self.epsilon = self.initial_epsilon
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.action_space = list(Action)
@@ -53,7 +53,7 @@ class RLAgent(BaseAgent):
         n = len(self.action_space)
         # small random init breaks the all-zeros argmax tie
         self.q_table = defaultdict(
-            lambda: np.random.uniform(-0.01, 0.01, n).astype(np.float32)
+            lambda: np.random.uniform(-0.02, 0.02, n).astype(np.float32)
         )
         self.transitions = []
         self.training = True
@@ -153,12 +153,10 @@ class RLAgent(BaseAgent):
             td_target = reward
             if next_state is not None and not done:
                 td_target += self.gamma * np.max(self.q_table[next_state])
-            self.q_table[state][idx] += self.learning_rate * (
-                td_target - self.q_table[state][idx]
-            )
+            self.q_table[state][idx] += self.learning_rate * (td_target - self.q_table[state][idx])
 
         self.transitions.clear()
-        self.epsilon = max(0.01, self.epsilon * 0.9995)
+        self.epsilon = max(0.001, self.epsilon * 0.999)
         self._episode_count += 1
 
     def observe(self, obs, reward, done, info):

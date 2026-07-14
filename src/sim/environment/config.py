@@ -9,11 +9,11 @@ MAX_CYCLES = 10000                # Maximum cycles before termination
 # RESOURCE SPAWNING SETTINGS
 # Controls how trees and fruits spawn dynamically
 # =============================================================================
-STARTING_FRUIT = 100
-STARTING_WOOD  = 50
-TREE_SPAWN_RATE = 0.5            # Probability (0-1) to spawn a new tree each cycle
+STARTING_FRUIT = 20
+STARTING_WOOD  = 10
+TREE_SPAWN_RATE = 0.2            # Probability (0-1) to spawn a new tree each cycle
 MAX_TREES = 20                   # Maximum number of trees allowed in the world
-FRUIT_SPAWN_RATE = 0.4           # Probability (0-1) per tree to grow fruit each cycle
+FRUIT_SPAWN_RATE = 0.2           # Probability (0-1) per tree to grow fruit each cycle
 FRUIT_GROWTH_AMOUNT = 1          # Number of fruits added when a tree grows
 
 # =============================================================================
@@ -30,7 +30,7 @@ CUTTER_FOREST_RESERVE = 0       # Cutters stop cutting at this many trees left (
 # =============================================================================
 ENABLE_WOOD_CONSUMPTION = True    # Set True to enable wood consumption
 WOOD_CONSUMPTION_RATE = 1         # Wood consumed globally each cycle (if USE_PER_AGENT_CONSUMPTION=False)
-WOOD_CONSUMPTION_PER_AGENT = 0.2   # Wood consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
+WOOD_CONSUMPTION_PER_AGENT = 0.1   # Wood consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)
 ENABLE_FRUIT_CONSUMPTION = True   # Set True to enable fruit consumption
 FRUIT_CONSUMPTION_RATE = 1        # Fruits consumed globally each cycle (if USE_PER_AGENT_CONSUMPTION=False)
 FRUIT_CONSUMPTION_PER_AGENT = 0.2  # Fruits consumed PER AGENT each cycle (if USE_PER_AGENT_CONSUMPTION=True)

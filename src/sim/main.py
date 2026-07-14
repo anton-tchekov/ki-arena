@@ -13,7 +13,7 @@ from analysis.run_logger import RunLogger
 from analysis.statistics import SimulationStats
 from agents.rl_agent import RLAgent
 from agents.rule_agent import GreedyCollector, GreedyCutter
-from environment.reward import CompositeRewardFn, CollectorRewardFn, CutterRewardFn, StepPenaltyFn, ExplorerRewardFn  
+from environment.reward import AliveBonusReward, CompositeRewardFn, CollectorRewardFn, CutterRewardFn, StepPenaltyFn, ExplorerRewardFn  
 from llm.llmmanager import LLMManager
 from llm.llmmanager_mistral import LLMManagerMistral
 
@@ -42,14 +42,14 @@ def _build_session(renderer=None):
 
         # --- Alternative: RL agents (tabular Q-learning). Uncomment these and the
         #     training phase below turns on automatically. ---
-        "collector_0": RLAgent("collector_0", debug=True),
-        "collector_1": RLAgent("collector_1", debug=True),
-        "collector_2": RLAgent("collector_2", debug=True),
-        "collector_3": RLAgent("collector_3", debug=True),
-        "cutter_0": RLAgent("cutter_0", debug=True),
-        "cutter_1": RLAgent("cutter_1", debug=True),
-        "cutter_2": RLAgent("cutter_2", debug=True),
-        "cutter_3": RLAgent("cutter_3", debug=True),
+        "collector_0": RLAgent("collector_0", debug=False),
+        #"collector_1": RLAgent("collector_1", debug=False),
+        #"collector_2": RLAgent("collector_2", debug=False),
+        #"collector_3": RLAgent("collector_3", debug=False),
+        "cutter_0": RLAgent("cutter_0", debug=False),
+        #"cutter_1": RLAgent("cutter_1", debug=False),
+        #"cutter_2": RLAgent("cutter_2", debug=False),
+        #"cutter_3": RLAgent("cutter_3", debug=False),
 
         # --- Alternative: LLM agents (need Ollama running or MISTRAL_API_KEY). ---
         #"collector_0": LLMAgent("collector_0", llm, 0),
@@ -118,7 +118,7 @@ def main() -> None:
 
         # ToDo: Separate training cycle
         # load pre-trained agents if available (e.g. from previous training runs)
-        load_rl_agents = True
+        load_rl_agents = False
         if(load_rl_agents):
             for agent in agents.values():
                 if hasattr(agent, "load"):
@@ -132,15 +132,16 @@ def main() -> None:
             config.reward_fn = CompositeRewardFn(
                 (1.0, CollectorRewardFn()),   # +5 on collect
                 (1.0, CutterRewardFn()),      # +5 on cut, +0.3 near trees
-                (0.5, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
-                (1.0, StepPenaltyFn(-0.05)), # -0.05 every step
+                (1.0, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
+                (1.0, StepPenaltyFn(-0.5)),  # -0.5 every movement step to encourage shorter paths
+                (1.0, AliveBonusReward(0.5)), # +0.5 every episode step
             )
             # The env caches reward_fn at construction, so update it too — otherwise
             # training would silently run on the default BasicReward.
             env.reward_fn = config.reward_fn
 
             try:
-                arena.run_phase(TrainingPhase(episodes=10000))
+                arena.run_phase(TrainingPhase(episodes=5000))
             except BackToMenu:
                 # Full reset before the menu reappears, same window.
                 config, agents, env = _build_session(renderer=env.renderer)
