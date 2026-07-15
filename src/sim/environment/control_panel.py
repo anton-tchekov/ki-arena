@@ -393,6 +393,10 @@ class ControlPanel:
         self.back_to_menu = False
         self._menu_axes = []
         self._menu_buttons = []
+        self._menu_list_axes = []
+        self._menu_list_buttons = []
+        self._menu_save_paths = save_paths
+        self._menu_scroll_offset = 0
 
         # Hide the normal panel widgets so the menu stands alone.
         self._hidden_for_menu = [
@@ -416,16 +420,22 @@ class ControlPanel:
         self._menu_buttons.append(btn_live)
 
         if save_paths:
-            # One button per saved run (newest first); cap so they fit the panel.
-            y = 0.71
-            for path in save_paths[:11]:
-                name = os.path.basename(path)
-                ax = self.fig.add_axes(_map_ax([0.12, y, 0.76, 0.045], self._region))
-                btn = Button(ax, name)
-                btn.on_clicked(lambda _e, p=path: self._choose_replay(p))
-                self._menu_axes.append(ax)
-                self._menu_buttons.append(btn)
-                y -= 0.058
+            # Small up/down buttons so the list can be scrolled with the
+            # mouse wheel or by clicking, instead of silently cutting off
+            # saves past the visible window.
+            ax_up = self.fig.add_axes(_map_ax([0.30, 0.745, 0.18, 0.03], self._region))
+            ax_down = self.fig.add_axes(_map_ax([0.52, 0.745, 0.18, 0.03], self._region))
+            btn_up = Button(ax_up, "▲")
+            btn_down = Button(ax_down, "▼")
+            btn_up.on_clicked(lambda _e: self._scroll_replay_menu(-1))
+            btn_down.on_clicked(lambda _e: self._scroll_replay_menu(1))
+            self._menu_axes += [ax_up, ax_down]
+            self._menu_buttons += [btn_up, btn_down]
+
+            self._scroll_cid = self.fig.canvas.mpl_connect(
+                "scroll_event", self._on_menu_scroll)
+
+            self._render_replay_list()
         else:
             # No saved runs: show a message where the list would be.
             ax_msg = self.fig.add_axes(_map_ax([0.12, 0.66, 0.76, 0.08], self._region))
@@ -435,6 +445,65 @@ class ControlPanel:
             self._menu_axes.append(ax_msg)
 
         self.fig.canvas.draw_idle()
+
+    # Rows fit between the up/down buttons (top at y=0.745) and the bottom
+    # of the panel (y≈0.13); each row is 0.045 tall with a 0.013 gap, and
+    # the list starts a clear 0.055 below the arrows so they never touch.
+    _MENU_LIST_TOP = 0.69
+    _MENU_LIST_ROW_H = 0.045
+    _MENU_LIST_ROW_STEP = 0.058
+    _MENU_LIST_BOTTOM = 0.13
+    _MENU_LIST_PAGE = max(1, int((_MENU_LIST_TOP - _MENU_LIST_BOTTOM) // _MENU_LIST_ROW_STEP))
+
+    def _render_replay_list(self) -> None:
+        """(Re)draw just the scrollable window of save buttons for the
+        current ``self._menu_scroll_offset``, leaving the live-run button
+        and up/down controls untouched."""
+        for ax in self._menu_list_axes:
+            try:
+                self.fig.delaxes(ax)
+            except Exception:
+                pass
+        self._menu_list_axes = []
+        self._menu_list_buttons = []
+
+        paths = self._menu_save_paths
+        page = self._MENU_LIST_PAGE
+        offset = self._menu_scroll_offset
+        window = paths[offset:offset + page]
+
+        y = self._MENU_LIST_TOP
+        for path in window:
+            name = os.path.basename(path)
+            ax = self.fig.add_axes(_map_ax([0.12, y, 0.76, self._MENU_LIST_ROW_H], self._region))
+            btn = Button(ax, name)
+            btn.on_clicked(lambda _e, p=path: self._choose_replay(p))
+            self._menu_list_axes.append(ax)
+            self._menu_list_buttons.append(btn)
+            y -= self._MENU_LIST_ROW_STEP
+
+        total = len(paths)
+        shown_end = min(offset + page, total)
+        self.set_label(f"Pick a replay to watch, or start a new run  "
+                        f"({offset + 1}-{shown_end} of {total}, scroll to see more)"
+                        if total > page else "Pick a replay to watch, or start a new run")
+        self.fig.canvas.draw_idle()
+
+    def _scroll_replay_menu(self, direction: int) -> None:
+        """Move the visible window up (-1) or down (+1) by one row, clamped
+        so it never scrolls past the first/last save."""
+        total = len(self._menu_save_paths)
+        page = self._MENU_LIST_PAGE
+        max_offset = max(0, total - page)
+        new_offset = self._menu_scroll_offset + direction
+        self._menu_scroll_offset = max(0, min(max_offset, new_offset))
+        self._render_replay_list()
+
+    def _on_menu_scroll(self, event) -> None:
+        # matplotlib scroll_event.step is +1 (up/away) or -1 (down/toward
+        # the user); scrolling up should move to older/earlier entries.
+        if getattr(event, "step", 0):
+            self._scroll_replay_menu(-1 if event.step > 0 else 1)
 
     def _choose_replay(self, choice: str) -> None:
         self.replay_choice = choice
@@ -452,13 +521,19 @@ class ControlPanel:
 
     def hide_replay_menu(self) -> None:
         """Remove the menu buttons and restore the normal panel widgets."""
-        for ax in self._menu_axes:
+        for ax in self._menu_axes + getattr(self, "_menu_list_axes", []):
             try:
                 self.fig.delaxes(ax)
             except Exception:
                 pass
         self._menu_axes = []
         self._menu_buttons = []
+        self._menu_list_axes = []
+        self._menu_list_buttons = []
+        scroll_cid = getattr(self, "_scroll_cid", None)
+        if scroll_cid is not None:
+            self.fig.canvas.mpl_disconnect(scroll_cid)
+            self._scroll_cid = None
         for ax in getattr(self, "_hidden_for_menu", []):
             ax.set_visible(True)
         # The caller decides the paused state afterwards (live and replay both
@@ -477,14 +552,16 @@ class ControlPanel:
         self._popup_axes = []
         self._popup_buttons = []
 
-        ax_msg = self.fig.add_axes(_map_ax([0.06, 0.60, 0.88, 0.10], self._region))
+        # Placed over the blackboard area (below the graphs) so it doesn't
+        # cover the end-of-run resource/population/age graphs above it.
+        ax_msg = self.fig.add_axes(_map_ax([0.06, 0.26, 0.88, 0.08], self._region))
         ax_msg.axis("off")
         ax_msg.text(0.5, 0.5, question, ha="center", va="center",
                     fontsize=10, wrap=True)
         self._popup_axes.append(ax_msg)
 
-        ax_yes = self.fig.add_axes(_map_ax([0.12, 0.50, 0.34, 0.07], self._region))
-        ax_no  = self.fig.add_axes(_map_ax([0.54, 0.50, 0.34, 0.07], self._region))
+        ax_yes = self.fig.add_axes(_map_ax([0.12, 0.16, 0.34, 0.07], self._region))
+        ax_no  = self.fig.add_axes(_map_ax([0.54, 0.16, 0.34, 0.07], self._region))
         btn_yes = Button(ax_yes, yes_label)
         btn_no  = Button(ax_no, no_label)
         btn_yes.on_clicked(lambda _e: self._set_popup_choice(True))

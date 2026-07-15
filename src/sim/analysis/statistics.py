@@ -103,6 +103,17 @@ class SimulationStats:
             " Agent lifespans (cycles):",
             f"   Average                  : {f(avg_life)}",
             f"   Longest                  : {longest_life} ({longest_name})",
-            "====================================================",
         ]
+
+        # Only meaningful with LLM agents (the blackboard is empty otherwise),
+        # so leave it out of runs that never used it.
+        conflicts = getattr(env, "stats_blackboard_conflicts", 0)
+        if conflicts:
+            lines += [
+                "",
+                " Coordination (LLM blackboard):",
+                f"   Coordinate claims that collided : {conflicts}",
+            ]
+
+        lines.append("====================================================")
         return "\n".join(lines)

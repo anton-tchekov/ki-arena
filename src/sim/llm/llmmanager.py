@@ -1,6 +1,7 @@
 from typing import Optional
 import time
 import os
+import uuid
 
 from ollama import chat
 from ollama import ChatResponse
@@ -16,7 +17,6 @@ class LLMManager():
 	keep_experience = False
 	use_experience = False
 	model_str = ''
-	client = Client(host='http://localhost:11434')
 	sys_prompt = ""
 
 	"""
@@ -24,16 +24,24 @@ class LLMManager():
 
 	Args:
 		use_experience  (bool): Uses the written down experience
+		timeout         (float): Client-side request timeout in seconds. Local
+		                         models can be slow, so this is generous by
+		                         default, but an explicit value beats a hang
+		                         with no visibility into why a run is stuck.
 	"""
-	def __init__(self, ollama_model_str: str, use_experience: bool = False):
+	def __init__(self, ollama_model_str: str, use_experience: bool = False, timeout: float = 120.0):
 		self.use_experience = use_experience
 		self.model_str = ollama_model_str
+		self.client = Client(host='http://localhost:11434', timeout=timeout)
 		os.makedirs("feedback", exist_ok=True)
 		# Observability: log every LLM call (prompt, response, latency, tokens) to
 		# the same llm_calls.jsonl the Mistral backend uses, so a purely local
 		# Ollama run still produces the structured LLM log the docs describe.
+		# run_id is one short id per manager instance (= per run) so lines in
+		# the ever-growing, never-rotated llm_calls.jsonl can be grouped back
+		# into the run that produced them.
 		log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm_calls.jsonl")
-		self.call_log = LLMCallLogger(os.path.normpath(log_path))
+		self.call_log = LLMCallLogger(os.path.normpath(log_path), run_id=uuid.uuid4().hex[:8])
 
 	@staticmethod
 	def _usage_from_response(response) -> dict:
@@ -114,11 +122,15 @@ class LLMManager():
 		action_resp = response.message.content.partition('\n')[0]
 		return self.parse_action(action_resp)
 
-	def request_response(self, llm_index: int, prompt: str) -> str:
+	def request_response(self, llm_index: int, prompt: str, cycle: Optional[int] = None,
+			agent_role: Optional[str] = None, guidance: Optional[bool] = None) -> str:
 		"""
 		Send `prompt` and return the model's RAW text reply (no parsing), so the
 		caller can read free-form natural language — e.g. a plan sentence —
 		alongside the action.
+
+		`cycle`, `agent_role` and `guidance` are purely for the call log (see
+		LLMCallLogger) — they don't affect the request.
 		"""
 		if llm_index > self.n:
 			return ""
@@ -138,7 +150,8 @@ class LLMManager():
 		latency = time.time() - t0
 		text = response.message.content or ""
 		self.call_log.log(llm_index, self.model_str, prompt + feedback_prompt, text,
-			latency, self._usage_from_response(response))
+			latency, self._usage_from_response(response),
+			cycle=cycle, agent_role=agent_role, guidance=guidance)
 		return text
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):

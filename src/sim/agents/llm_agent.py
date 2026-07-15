@@ -1,5 +1,6 @@
 import re
 import random
+from collections import deque
 
 from agents.base import BaseAgent
 from agents.blackboard import shared_blackboard
@@ -47,6 +48,12 @@ class LLMAgent(BaseAgent):
         # it, the model recomputes "nearest tree" from scratch every turn and
         # oscillates between neighboring cells instead of converging.
         self._last_target: tuple[int, int] | None = None
+        # Last few (x,y) positions, oldest first — used to detect an agent
+        # ping-ponging between the same two tiles instead of making progress.
+        # This exact failure mode (--llm-no-guidance runs oscillating forever
+        # because a model recomputes "nearest tree" from scratch every turn)
+        # was previously only found by reading replay positions by hand.
+        self._recent_positions: deque = deque(maxlen=4)
 
     # --- Communication (LLM agents only) ---------------------------------
     def announce(self, plan: str) -> None:
@@ -373,7 +380,27 @@ PLAN: <one short message to your teammates>"""
                 self._last_target = (int(mx), int(my))
         return action
 
+    def _check_oscillation(self, x: int, y: int) -> None:
+        """
+        Flag (print) when the agent has spent its last few turns bouncing
+        between only two tiles instead of making progress — e.g. it keeps
+        recomputing "nearest tree" slightly differently each turn, or two
+        directed instructions keep contradicting each other. Cheap to check
+        (just the position history) and turns a pattern that was previously
+        only noticed by reading replay positions by hand into an immediate,
+        visible warning during the run itself.
+        """
+        self._recent_positions.append((x, y))
+        if len(self._recent_positions) == self._recent_positions.maxlen and \
+                len(set(self._recent_positions)) <= 2:
+            cells = sorted(set(self._recent_positions))
+            print(f"[oscillation] {self.name} stuck bouncing between {cells} "
+                  f"for the last {len(self._recent_positions)} turns")
+
     def act(self, obs, info) -> Action:
+        self._check_oscillation(obs['x'], obs['y'])
         prompt, fallback_action = self.build_prompt(obs, info)
-        raw = self.llm.request_response(self.index, prompt)
+        role = "cutter" if "cutter" in self.name else "collector"
+        raw = self.llm.request_response(self.index, prompt, cycle=obs.get('cycle'),
+                                         agent_role=role, guidance=self.guidance)
         return self.finish_turn(raw, fallback_action)
