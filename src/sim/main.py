@@ -1,5 +1,7 @@
 import os
 
+from networkx import config
+
 from agents.llm_agent import LLMAgent
 from arena.simple_arena import Arena
 from arena.phases import TrainingPhase, ExecutionPhase
@@ -31,6 +33,12 @@ def _build_session(renderer=None):
     config = EnvConfig()
     # Apply the cutter conservation rule from config (0 = off / greedy).
     GreedyCutter.forest_reserve = config.cutter_forest_reserve
+    #config.collector_class = GreedyCollector
+    config.collector_class = RLAgent
+    #config.collector_class = LLMAgent
+    #config.cutter_class = GreedyCutter
+    config.cutter_class = RLAgent
+    #config.cutter_class = LLMAgent
     agents = {
         # --- Default demo: rule-based (Greedy) agents. Need no API/Ollama and
         #     are deterministic with a fixed seed. Matches README + docs/demo.md. ---
@@ -118,11 +126,12 @@ def main() -> None:
 
         # ToDo: Separate training cycle
         # load pre-trained agents if available (e.g. from previous training runs)
-        load_rl_agents = False
+        load_rl_agents = cp.ask_yes_no("Load pre-trained RL agents (if available)?", "Load", "Skip")
         if(load_rl_agents):
+            new_training = cp.ask_yes_no("Load Q-tables for training or for execution?", "Training", "Execution")
             for agent in agents.values():
                 if hasattr(agent, "load"):
-                    agent.load()
+                    agent.load(new_training=new_training)
 
         # Train only when RL agents are present; rule/LLM agents need no training.
         learning = any(isinstance(a, RLAgent) for a in agents.values())
@@ -130,8 +139,8 @@ def main() -> None:
         if learning:
             # RL reward shaping — only meaningful while training the Q-tables.
             config.reward_fn = CompositeRewardFn(
-                #(1.0, CollectorRewardFn()),   # +5 on collect
-                (1.0, CutterRewardFn()),      # +5 on cut, +0.3 near trees
+                (1.0, CollectorRewardFn()),   # reward on collect
+                (1.0, CutterRewardFn()),      # reward on cut
                 #(1.0, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
                 (0.1, StepPenaltyFn(-0.5)),  # -0.5 every movement step to encourage shorter paths
                 (0.1, AliveBonusReward(0.5)), # +0.5 every episode step

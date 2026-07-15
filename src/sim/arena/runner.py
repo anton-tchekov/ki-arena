@@ -5,6 +5,8 @@ from environment.state_history import StateHistory, next_save_path
 from analysis.logger import Logger
 from agents.blackboard import shared_blackboard
 from agents.rule_agent import GreedyCollector, GreedyCutter
+from agents.rl_agent import RLAgent
+from agents.llm_agent import LLMAgent
 
 
 class EpisodeRunner:
@@ -19,11 +21,37 @@ class EpisodeRunner:
     def _resolve_agent(self, agent_name: str):
         if agent_name in self.agents:
             return self.agents[agent_name]
-        if agent_name not in self._dynamic_agents:
-            agent_type = getattr(self.env, "agent_types", {}).get(agent_name, "collector")
-            cls = GreedyCutter if "cutter" in agent_type else GreedyCollector
-            self._dynamic_agents[agent_name] = cls(agent_name)
-        return self._dynamic_agents[agent_name]
+
+        if agent_name in self._dynamic_agents:
+           return self._dynamic_agents[agent_name]
+
+        agent_type = self.env.agent_types.get(agent_name, "collector")
+
+        if agent_type == "collector":
+            cls = self.env.config.collector_class
+        else:
+            cls = self.env.config.cutter_class
+
+        if cls is RLAgent:
+            agent = RLAgent(agent_name, debug=False)
+            agent.load()
+        elif cls is LLMAgent:
+            agent = LLMAgent(agent_name, self.env.llm, 0)
+        else:
+            agent = cls(agent_name)
+
+        self._dynamic_agents[agent_name] = agent
+
+        return agent
+
+    #def _resolve_agent(self, agent_name: str):
+    #   if agent_name in self.agents:
+    #        return self.agents[agent_name]
+    #    if agent_name not in self._dynamic_agents:
+    #        agent_type = getattr(self.env, "agent_types", {}).get(agent_name, "collector")
+    #        cls = GreedyCutter if "cutter" in agent_type else GreedyCollector
+    #        self._dynamic_agents[agent_name] = cls(agent_name)
+    #    return self._dynamic_agents[agent_name]
 
     def _save_now(self, state_history) -> None:
         """Save everything recorded so far (including blackboard notes) as a

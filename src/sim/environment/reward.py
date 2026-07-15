@@ -59,9 +59,9 @@ class CollectorRewardFn(RewardFunction):
         )
 
         if result_type == "collect":
-            reward = 5.0
+            reward = 8.0
         elif action == Action.INTERACT and result_type == "none":
-            reward = -1.0
+            reward = -0.3
         else:
             reward = 0.0
 
@@ -99,9 +99,9 @@ class CutterRewardFn(RewardFunction):
             else None
         )
         if result_type == "cut":
-            reward = 5.0
+            reward = 8.0
         elif action == Action.INTERACT and result_type == "none":
-            reward = -1.0
+            reward = -0.3
         else:
             reward = 0.0
 

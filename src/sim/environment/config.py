@@ -1,3 +1,4 @@
+from agents.rule_agent import GreedyCollector, GreedyCutter
 # =============================================================================
 # BASIC ENVIRONMENT SETTINGS
 # =============================================================================
@@ -45,6 +46,8 @@ SPAWN_FRUIT_COST = 20            # Fruits deducted from resources when a new age
 SPAWN_WOOD_COST = 20             # Wood deducted from resources when a new agent spawns
 SPAWN_TYPE = "balanced"            # "random", "balanced", "cutter", or "collector"
                                  # "balanced": spawn whichever role currently has fewer agents
+COLLECTOR_CLASS = GreedyCollector          # Spawn Class for collectors (default is GreedyCollector, can be RLAgent or LLMAgent)
+CUTTER_CLASS = GreedyCutter             # Spawn Class for cutters (default is GreedyCutter, can be RLAgent or LLMAgent)
 
 # =============================================================================
 # AGENT DEATH SETTINGS
@@ -104,6 +107,8 @@ class EnvConfig:
         self.spawn_fruit_cost = SPAWN_FRUIT_COST
         self.spawn_wood_cost = SPAWN_WOOD_COST
         self.spawn_type = SPAWN_TYPE
+        self.collector_class = COLLECTOR_CLASS
+        self.cutter_class = CUTTER_CLASS
 
         # AGENT DEATH SETTINGS
         self.enable_aging = ENABLE_AGING

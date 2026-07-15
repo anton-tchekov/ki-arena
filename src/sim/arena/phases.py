@@ -26,13 +26,9 @@ class TrainingPhase(Phase):
                 extinct_rate = sum(o["extinct"] for o in window) / len(window)
                 print(f"  Episode {ep+1}/{self.episodes}  "
                       f"avg_survival={avg_cycles:.1f} cycles  "
-                      f"extinct_rate={extinct_rate:.0%}  "
-                      + str({name: f"ε={agent.epsilon:.3f}"
+                      + str({name: f"ε={agent.epsilon:.3f} td={agent.last_td_error:.3f} |Q|={agent.last_qtable_size}"
                              for name, agent in arena.agents.items()
-                             if hasattr(agent, "epsilon")}),
-                        {name: f"td={agent.last_td_error:.3f} |Q|={agent.last_qtable_size}"
-                        for name, agent in arena.agents.items()
-                        if hasattr(agent, "last_td_error")})
+                             if hasattr(agent, "epsilon") and hasattr(agent, "last_td_error") and hasattr(agent, "last_qtable_size")}))
 
         for agent in arena.agents.values():
             if hasattr(agent, "on_training_end"):

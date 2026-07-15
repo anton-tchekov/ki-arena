@@ -238,6 +238,11 @@ class RLAgent(BaseAgent):
             lambda: np.zeros(len(self.action_space), dtype=np.float32),
             payload["q_table"]
         )
-        self.epsilon = payload["epsilon"]
-        self.training = payload["training"]
+        if not new_training:
+            self.epsilon = 0.0
+            self.training = False
+        else:
+            self.epsilon = self.initial_epsilon
+            self.training = True
+            
         print(f"Loaded {self.name} ← {path}  (ε={self.epsilon:.3f})")  
