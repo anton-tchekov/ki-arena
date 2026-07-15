@@ -12,7 +12,7 @@ Gruppe HAD, Anton Tchekov, Daniil Khoma, Haron Nazari, HAW Hamburg
 
 ## 2. Architekturüberblick
 
-![Architektur](diagrams/Architekturdiagramm.png)
+![Architektur](../diagrams/Architekturdiagramm.png)
 
 Code unter `src/sim/`, Einstieg `main.py`:
 

@@ -35,5 +35,6 @@ class BasicObservation(ObservationBuilder):
             'trees': world.trees,
             'total_fruit': total_fruit,
             'wood_count': wood_count,
-            'fruit_count': fruit_count
+            'fruit_count': fruit_count,
+            'cycle': getattr(world, 'cycle', 0),
         }

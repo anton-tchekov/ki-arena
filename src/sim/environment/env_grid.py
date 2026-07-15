@@ -12,6 +12,8 @@ from environment.renderer import GridWorldRenderer
 from environment.resource_manager import ResourceManager
 from agents.base import BaseAgent
 from environment.actions import Action
+from agents.blackboard import shared_blackboard
+from analysis.coordination import count_conflicts
 #from config import EnvConfig
 
 
@@ -93,6 +95,11 @@ class GridForestEnv(AECEnv):
         self.stats_deaths_by_cause = {"old age": 0, "starvation_fruit": 0, "starvation_wood": 0}
         self.stats_population_sum = 0
         self.stats_age_sum = 0.0
+        # How many blackboard coordinate-claims collided with another agent's
+        # claim in the same cycle (only ever non-zero with LLM agents; see
+        # analysis/coordination.py). Turns "LLM coordination isn't perfect"
+        # from a manual replay-reading impression into a number.
+        self.stats_blackboard_conflicts = 0
 
         # Reset resource manager
         self.resource_manager = ResourceManager(self.config)
@@ -191,6 +198,10 @@ class GridForestEnv(AECEnv):
             self.stats_age_sum += (sum(cycle_ages) / len(cycle_ages)) if cycle_ages else 0
             self.world.deaths_by_cause = self.stats_deaths_by_cause
             self.world.avg_population = self.stats_population_sum / max(1, self.cycle)
+
+            notes = shared_blackboard.read()
+            if notes:
+                self.stats_blackboard_conflicts += count_conflicts(notes)
 
             # End-of-cycle state digest (spawn/death events were logged above)
             if self.run_logger:

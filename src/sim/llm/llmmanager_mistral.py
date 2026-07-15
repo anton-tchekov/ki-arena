@@ -1,6 +1,7 @@
 from typing import Optional
 import time
 import os
+import uuid
 
 import httpx
 from ollama import chat
@@ -40,10 +41,14 @@ def _call_with_retry(fn, max_retries: int = 5, base_delay: float = 2.0):
 	with exponential backoff on rate limits (429) and transient server/
 	connection errors. Anything else (bad request, auth, etc.) is raised
 	immediately since retrying it would never succeed.
+
+	Returns (result, attempts_used) so callers can record how flaky the call
+	was in the LLM call log — without this, a call that needed 4 retries
+	looks identical in the log to one that succeeded first try.
 	"""
 	for attempt in range(max_retries + 1):
 		try:
-			return fn()
+			return fn(), attempt
 		except SDKError as e:
 			status = getattr(e.raw_response, "status_code", None)
 			if status not in _RETRYABLE_STATUS or attempt == max_retries:
@@ -72,7 +77,7 @@ class LLMManagerMistral():
 		use_experience  (bool): Uses the written down experience
 	"""
 	def __init__(self, use_experience: bool = False, model: str = "magistral-small-latest",
-			reasoning_effort: str | None = None):
+			reasoning_effort: str | None = None, timeout_ms: int = 60000):
 		self.use_experience = use_experience
 		self.model = model
 		# Passed straight to the API's `reasoning_effort` param (models that
@@ -80,10 +85,19 @@ class LLMManagerMistral():
 		# "none"/"minimal"/"low"/"medium"/"high"/"xhigh". None = don't set it,
 		# so models without this knob aren't sent an unsupported field.
 		self.reasoning_effort = reasoning_effort
+		# Explicit client-side timeout per call, so a hung request fails loudly
+		# (and gets retried) instead of blocking a run indefinitely. The SDK
+		# defaults to 60s if left unset; we set it explicitly so it's visible
+		# and tunable from here instead of buried in the SDK's defaults.
+		self.timeout_ms = timeout_ms
 		os.makedirs("feedback", exist_ok=True)
 		# Observability: log every LLM call (prompt, response, latency, tokens).
+		# run_id is one short id per manager instance (= per run, since one
+		# manager is shared by all LLM agents in a run) so lines in the
+		# ever-growing, never-rotated llm_calls.jsonl can be grouped back into
+		# the run that produced them.
 		log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm_calls.jsonl")
-		self.call_log = LLMCallLogger(os.path.normpath(log_path))
+		self.call_log = LLMCallLogger(os.path.normpath(log_path), run_id=uuid.uuid4().hex[:8])
 
 	def set_sys_prompt(self, prompt: str):
 		self.sys_prompt = prompt
@@ -137,7 +151,7 @@ class LLMManagerMistral():
 		model = "ministral-3b-2512"
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""),) as mistral:
 			t0 = time.time()
-			res = _call_with_retry(lambda: mistral.chat.complete(model=model, messages=[
+			res, retries = _call_with_retry(lambda: mistral.chat.complete(model=model, messages=[
 				{
 					"role": "user",
 					"content": full_prompt,
@@ -150,24 +164,29 @@ class LLMManagerMistral():
 			stream=False,
 			response_format={
 				"type": "text",
-			}))
+			},
+			timeout_ms=self.timeout_ms))
 			latency = time.time() - t0
 
 		# Parse the action from the response
 		action_resp = res.choices[0].message.content
 		print("RESPONSE: " + action_resp)
 		self.call_log.log(llm_index, model, full_prompt, action_resp, latency,
-			getattr(res, "usage", None))
+			getattr(res, "usage", None), retries=retries)
 		# self.give_feedback(0, "", action_resp, self.parse_action(action_resp))
 		parse_result = self.parse_action(action_resp)
 		#print("PARSE RESULT: " + str(parse_result))
 		return parse_result
 
-	def request_response(self, llm_index: int, prompt: str) -> str:
+	def request_response(self, llm_index: int, prompt: str, cycle: int | None = None,
+			agent_role: str | None = None, guidance: bool | None = None) -> str:
 		"""
 		Send `prompt` and return the model's RAW text reply (no parsing, no
 		action-only system prompt), so the caller can read free-form natural
 		language — e.g. a plan sentence — alongside the action.
+
+		`cycle`, `agent_role` and `guidance` are purely for the call log (see
+		LLMCallLogger) — they don't affect the request.
 		"""
 		if llm_index > self.n:
 			return ""
@@ -187,14 +206,16 @@ class LLMManagerMistral():
 		extra = {"reasoning_effort": self.reasoning_effort} if self.reasoning_effort else {}
 		with Mistral(api_key=os.getenv("MISTRAL_API_KEY", "")) as mistral:
 			t0 = time.time()
-			res = _call_with_retry(lambda: mistral.chat.complete(
+			res, retries = _call_with_retry(lambda: mistral.chat.complete(
 				model=model, messages=messages,
-				stream=False, response_format={"type": "text"}, **extra))
+				stream=False, response_format={"type": "text"},
+				timeout_ms=self.timeout_ms, **extra))
 			latency = time.time() - t0
 
 		response = _extract_text(res.choices[0].message.content)
 		self.call_log.log(llm_index, model, full_prompt, response, latency,
-			getattr(res, "usage", None))
+			getattr(res, "usage", None), retries=retries,
+			cycle=cycle, agent_role=agent_role, guidance=guidance)
 		return response
 
 	def give_feedback(self, llm_index: int, info: str, feedback: str, chosen_action: Action):

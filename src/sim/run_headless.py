@@ -13,7 +13,7 @@ Examples
   # Default: rule-based (Greedy) agents, one run, seed 1
   python run_headless.py
 
-  # Reproduce the tree_spawn_rate sweep from docs/experiment.md
+  # Reproduce the tree_spawn_rate sweep from docs/detailiertedoku/experiment.md
   python run_headless.py --agents greedy --seeds 1,2,3 --set tree_spawn_rate=0.9
 
   # Train + run RL agents
@@ -31,6 +31,8 @@ import argparse
 import os
 import random
 import signal
+import traceback
+from datetime import datetime
 
 # Force a non-interactive backend BEFORE anything imports matplotlib via the
 # environment package — this is what makes the run truly headless.
@@ -144,6 +146,7 @@ def collect_metrics(env) -> dict:
         "fruit_end": round(rm.fruits, 1),
         "wood_cut": rm.total_wood_cut,
         "fruit_collected": rm.total_fruit_collected,
+        "blackboard_conflicts": getattr(env, "stats_blackboard_conflicts", 0),
     }
 
 
@@ -212,6 +215,7 @@ def run_once(args, seed: int) -> dict:
 
     prev_sigterm = signal.signal(signal.SIGTERM, _save_on_interrupt)
     prev_sigint = signal.signal(signal.SIGINT, _save_on_interrupt)
+    ep = 0
     try:
         for ep in range(args.episodes):
             env.reset()
@@ -219,6 +223,23 @@ def run_once(args, seed: int) -> dict:
             shared_blackboard.clear()
             _run_episode_headless(runner, env, history if args.save else None,
                                    progress_every=0 if args.quiet else 10)
+    except Exception:
+        # An expensive multi-hundred-cycle LLM run dying at cycle 480 of 500
+        # with nothing but a lost terminal scrollback is the worst case here.
+        # Save whatever replay we have (same as the interrupt handler) and
+        # write the traceback + cycle it died at to a file next to it, so the
+        # crash is diagnosable after the fact instead of just "it stopped".
+        crash_path = os.path.join(BASE_DIR, f"crash_{datetime.now():%Y%m%d_%H%M%S}.log")
+        with open(crash_path, "w", encoding="utf-8") as f:
+            f.write(f"Crashed at cycle {getattr(env, 'cycle', '?')} (episode {ep})\n\n")
+            f.write(traceback.format_exc())
+        if args.save and len(history) > 0 and interrupted["saved_path"] is None:
+            path = next_save_path(saves_dir)
+            history.save_to_file(path, config)
+            interrupted["saved_path"] = path
+            print(f"Saved partial replay to {path} ({len(history)} cycles)")
+        print(f"Run crashed — traceback written to {crash_path}")
+        raise
     finally:
         signal.signal(signal.SIGTERM, prev_sigterm)
         signal.signal(signal.SIGINT, prev_sigint)

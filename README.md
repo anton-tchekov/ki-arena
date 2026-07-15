@@ -53,8 +53,7 @@ MISTRAL_API_KEY=… python run_headless.py --agents llm --llm-backend mistral --
 ```
 Mit `--save` wird der Lauf als Replay in `saves/` gespeichert (plus eine `.txt`-Notiz).
 Interessante Parameter-Einstellungen sind in `src/sim/simulation_parameters.txt`
-dokumentiert, die zugehörigen Ergebnisse in `docs/labnotebook.md` und
-`docs/experiment.md`.
+dokumentiert, die zugehörigen Ergebnisse in `docs/ergebnisse.md`.
 
 ### Replays
 
@@ -77,15 +76,11 @@ der Lauf interessant ist. Diese lassen sich direkt im Replay-Menü abspielen.
 
 ### Dokumentation
 
-- `docs/projektdokumentation.md` – Gesamtdokumentation (Motivation, Architektur, Design, Evaluation, Limitationen)
-- `docs/experiment.md` – Hypothese, Versuchsaufbau und Ergebnisse
-- `docs/metriken.md` – verwendete Metriken
-- `docs/labnotebook.md` – Beobachtungen aus Durchläufen
-- `docs/edgecases.md` – Edge Cases und Fehlerbehandlung
-- `docs/reflexion.md` – Reflexion
-- `docs/demo.md` – Ablauf der Live-Demo
-- `docs/slides.md` – Präsentationsfolien
-- `docs/transparenz.md` – Hinweis zur Nutzung von Coding-Assistenten
+- [docs/idee.md](docs/idee.md) – die Idee des Projekts
+- [docs/agenten.md](docs/agenten.md) – welche Agenten es gibt und wie sie funktionieren
+- [docs/metriken.md](docs/metriken.md) – womit wir Agenten und Läufe bewerten
+- [docs/ergebnisse.md](docs/ergebnisse.md) – alle Ergebnisse im Überblick
+- [docs/detailiertedoku/](docs/detailiertedoku/) – ausführliche Detail-Doku (Experimente, Lab Notebook, Prompts, Edge Cases, Reflexion usw.)
 
 ## Projektbeschreibung
 
