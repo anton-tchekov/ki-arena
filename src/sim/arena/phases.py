@@ -29,7 +29,10 @@ class TrainingPhase(Phase):
                       f"extinct_rate={extinct_rate:.0%}  "
                       + str({name: f"ε={agent.epsilon:.3f}"
                              for name, agent in arena.agents.items()
-                             if hasattr(agent, "epsilon")}))
+                             if hasattr(agent, "epsilon")}),
+                        {name: f"td={agent.last_td_error:.3f} |Q|={agent.last_qtable_size}"
+                        for name, agent in arena.agents.items()
+                        if hasattr(agent, "last_td_error")})
 
         for agent in arena.agents.values():
             if hasattr(agent, "on_training_end"):

@@ -65,7 +65,7 @@ class CollectorRewardFn(RewardFunction):
         else:
             reward = 0.0
 
-        reward += self.shaping_weight * self._richness_bonus(world, agent)
+        #reward += self.shaping_weight * self._richness_bonus(world, agent)
         return reward
 
 class CutterRewardFn(RewardFunction):
@@ -105,7 +105,7 @@ class CutterRewardFn(RewardFunction):
         else:
             reward = 0.0
 
-        reward += self.shaping_weight * self._poorness_bonus(world, agent)
+        #reward += self.shaping_weight * self._poorness_bonus(world, agent)
         return reward
 
 class ExplorerRewardFn(RewardFunction):

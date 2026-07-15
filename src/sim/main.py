@@ -130,18 +130,18 @@ def main() -> None:
         if learning:
             # RL reward shaping — only meaningful while training the Q-tables.
             config.reward_fn = CompositeRewardFn(
-                (1.0, CollectorRewardFn()),   # +5 on collect
+                #(1.0, CollectorRewardFn()),   # +5 on collect
                 (1.0, CutterRewardFn()),      # +5 on cut, +0.3 near trees
-                (1.0, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
-                (1.0, StepPenaltyFn(-0.5)),  # -0.5 every movement step to encourage shorter paths
-                (1.0, AliveBonusReward(0.5)), # +0.5 every episode step
+                #(1.0, ExplorerRewardFn()),    # +0.5 for new cells, -0.05 revisit
+                (0.1, StepPenaltyFn(-0.5)),  # -0.5 every movement step to encourage shorter paths
+                (0.1, AliveBonusReward(0.5)), # +0.5 every episode step
             )
             # The env caches reward_fn at construction, so update it too — otherwise
             # training would silently run on the default BasicReward.
             env.reward_fn = config.reward_fn
 
             try:
-                arena.run_phase(TrainingPhase(episodes=5000))
+                arena.run_phase(TrainingPhase(episodes=100000, log_every=1000))
             except BackToMenu:
                 # Full reset before the menu reappears, same window.
                 config, agents, env = _build_session(renderer=env.renderer)
